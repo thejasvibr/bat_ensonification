@@ -11,19 +11,22 @@ import numpy as np
 import sounddevice as sd
 import matplotlib.pyplot as plt
 import scipy.signal
+import scipy.io.wavfile as wavfile
 
 FS=192 *1000 # sampling rate
-playbackdurn=4.0 # length of playback sound
-silencedurn=1
+playbackdurn=5.0 # length of playback sound
+silencedurn=2
 numplaybacks=7
-rampduration=0.5 # length of up and down ramp in seconds
-amplification=20 # in dB
 
-highpass_frequency=18 *1000
+rampduration=0.1 # length of up and down ramp in seconds
+amplification=0 # in dB
+
+highpass_frequency=1*1000
 
 
 playbacksamples=int(playbackdurn*FS)
 rampsamples=int(rampduration*FS)
+silencesamples=int(silencedurn*FS)
 
 ### create the gaussian noise to be played back
 
@@ -49,27 +52,27 @@ silence_playback=np.zeros(silencedurn*FS)
 
 unitplayback=np.hstack((windowed_noise,silence_playback))
 
-somesilence=np.zeros(rampsamples)
+startandend_silence=np.zeros(silencesamples)
 
 
 # add some silence to the noise playback
-finalplayback=np.hstack((somesilence,np.tile(unitplayback,numplaybacks)*10**(amplification/20.0),somesilence))
+finalplayback=np.hstack((startandend_silence,np.tile(unitplayback,numplaybacks)*10**(amplification/20.0),startandend_silence))
 
 # create the syncsignal
 syncsignal=np.zeros(finalplayback.size)
 
-syncsignal[somesilence.size+1]=1 # indicate the start of signal
+syncsignal[startandend_silence.size+1]=1 # indicate the start of signal
 
 DeviceIndex=40 # for Fireface ASIO USB
 
 
 # stack the two output signal  as 2 columns
-playbackarray=np.column_stack((finalplayback,syncsignal))
+playbackarray=np.column_stack((finalplayback,syncsignal,finalplayback))
 
 
 # initiate sounddevice for the simultaneous recording and playback:
 print('\n recording and playback intiated....')
-recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2],input_mapping=[3,4,9],blocking=True,device=DeviceIndex)
+recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2,3],input_mapping=[2,9,3],blocking=True,device=DeviceIndex)
 print('\n recording and playback stopped....')
 
 
@@ -84,14 +87,14 @@ print('\n recording and playback stopped....')
 
 if __name__=='__main__':
 
-
-    plt.figure(1)
-    fig=plt.subplot(111)
-    fig.set_xlim(xmin=0,xmax=unitplayback.size)
-    fig.set_ylim(ymin=-1,ymax=1)
-    print('\n plots are being plotted')
-    plt.title('single noise playback unit')
-    plt.plot(unitplayback)
+#
+#    plt.figure(1)
+#    fig=plt.subplot(111)
+#    fig.set_xlim(xmin=0,xmax=unitplayback.size)
+#    fig.set_ylim(ymin=-1,ymax=1)
+#    print('\n plots are being plotted')
+#    plt.title('single noise playback unit')
+#    plt.plot(unitplayback)
 
 
 #    plt.figure(2)
@@ -99,6 +102,7 @@ if __name__=='__main__':
 #    fig.set_xlim(xmin=0,xmax=completeplayback.size)
 #    fig.set_ylim(ymin=-1,ymax=1)
 #    plt.plot(completeplayback)
+    plt.rcParams['agg.path.chunksize'] = 100000
 
     plt.figure(3)
     fig=plt.subplot(111)
@@ -118,6 +122,21 @@ if __name__=='__main__':
     plt.xlabel('Time [sec]')
     plt.show()
 
-
-
     print('plots are ready')
+
+    targetdir='C:\\Users\\tbeleyur\\Documents\\speaker_directionality_measurements'
+
+    filenames=['\\sync_signal.wav','\\Sanken_11.wav','\\internal_record.wav']
+    fullpaths=map(lambda x: targetdir+x,filenames)
+
+    filewriter=lambda np_array,file_name: wavfile.write(file_name,FS,np_array)
+
+    def convert2wav(recordedarray,fullpathnames):
+        for column in range(recordedarray.shape[1]):
+            filewriter(recordedarray[:,column],fullpathnames[column])
+
+    convert2wav(recordedsound,fullpaths)
+
+    readthisfile=targetdir+'\\mic_30dB_amplifier_-18dB'+filenames[1]
+    readfs,a=wavfile.read(readthisfile)
+    plt.plot(a)
