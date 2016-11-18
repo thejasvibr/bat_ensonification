@@ -16,22 +16,25 @@ playbackdurn=3.0 # length of playback sound
 numplaybacks=2
 silencedurn=1
 rampduration=0.5 # length of up and down ramp in seconds
-amplification=10 # in dB
+amplification=20 # in dB
 
 
 playbacksamples=int(playbackdurn*FS)
 rampsamples=int(rampduration*FS)
 
+### create the gaussian noise to be played back
+
 raw_gaussiannoise=np.random.normal(0.0,0.05,playbacksamples)
 
+# perform windowing at front and back to have a slow ramp up and ramp down
 hamming_window=np.hamming(2*rampsamples)
 
 windowed_noise=np.copy(raw_gaussiannoise)
 
-
 windowed_noise[0:rampsamples]=hamming_window[0:rampsamples]*raw_gaussiannoise[0:rampsamples]
 windowed_noise[-rampsamples:playbacksamples]=hamming_window[-rampsamples:2*rampsamples]*raw_gaussiannoise[-rampsamples:playbacksamples]
 
+# create the sync-channel playback
 
 silence_playback=np.zeros(silencedurn*FS)
 
@@ -39,22 +42,27 @@ unitplayback=np.hstack((windowed_noise,silence_playback))
 
 somesilence=np.zeros(rampsamples)
 
-completeplayback=np.hstack((somesilence,np.tile(unitplayback,numplaybacks)*10**(amplification/20.0),somesilence))
-#
-#syncsignal=np.zeros(completeplayback.size)
-#syncsignal[somesilence.size+1]=0.8 # indicate=start of signal
 
-DeviceIndex=40 # for Fireface
+# add some silence to the noise playback
+finalplayback=np.hstack((somesilence,np.tile(unitplayback,numplaybacks)*10**(amplification/20.0),somesilence))
 
-playbackarray=(completeplayback)
+# create the syncsignal
+syncsignal=np.zeros(finalplayback.size)
+
+syncsignal[somesilence.size+1]=1 # indicate the start of signal
+
+DeviceIndex=40 # for Fireface ASIO USB
 
 
-# now to initiate sounddevice for the simultaneousl recording and playback:
+# stack the two output signal  as 2 columns
+playbackarray=np.column_stack((finalplayback,syncsignal))
+
+
+# initiate sounddevice for the simultaneous recording and playback:
 print('\n recording and playback intiated....')
-recordedsound=sd.playrec(completeplayback,samplerate=FS,output_mapping=[1],input_mapping=[3,9],blocking=True,device=DeviceIndex)
+recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2],input_mapping=[3,4,9],blocking=True,device=DeviceIndex)
 print('\n recording and playback stopped....')
-#
-#deviceid=40 # 40 for the Fireface ASIO USB
+
 
 
 
