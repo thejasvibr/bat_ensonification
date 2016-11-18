@@ -10,13 +10,16 @@ Script to plyaback white gaussian noise from the Vifa speakers
 import numpy as np
 import sounddevice as sd
 import matplotlib.pyplot as plt
+import scipy.signal
 
-FS=192 * 1000 # sampling rate
-playbackdurn=3.0 # length of playback sound
-numplaybacks=2
+FS=192 *1000 # sampling rate
+playbackdurn=4.0 # length of playback sound
 silencedurn=1
+numplaybacks=7
 rampduration=0.5 # length of up and down ramp in seconds
 amplification=20 # in dB
+
+highpass_frequency=18 *1000
 
 
 playbacksamples=int(playbackdurn*FS)
@@ -26,10 +29,16 @@ rampsamples=int(rampduration*FS)
 
 raw_gaussiannoise=np.random.normal(0.0,0.05,playbacksamples)
 
+# highpass filter the signal
+
+a,b=scipy.signal.butter(8,float(highpass_frequency)/(FS/2),btype='high')
+
+hp_filt_gaussiannoise=scipy.signal.lfilter(a,b,raw_gaussiannoise)
+
 # perform windowing at front and back to have a slow ramp up and ramp down
 hamming_window=np.hamming(2*rampsamples)
 
-windowed_noise=np.copy(raw_gaussiannoise)
+windowed_noise=np.copy(hp_filt_gaussiannoise)
 
 windowed_noise[0:rampsamples]=hamming_window[0:rampsamples]*raw_gaussiannoise[0:rampsamples]
 windowed_noise[-rampsamples:playbacksamples]=hamming_window[-rampsamples:2*rampsamples]*raw_gaussiannoise[-rampsamples:playbacksamples]
@@ -73,10 +82,6 @@ print('\n recording and playback stopped....')
 
 
 
-
-
-
-
 if __name__=='__main__':
 
 
@@ -85,6 +90,7 @@ if __name__=='__main__':
     fig.set_xlim(xmin=0,xmax=unitplayback.size)
     fig.set_ylim(ymin=-1,ymax=1)
     print('\n plots are being plotted')
+    plt.title('single noise playback unit')
     plt.plot(unitplayback)
 
 
@@ -96,6 +102,22 @@ if __name__=='__main__':
 
     plt.figure(3)
     fig=plt.subplot(111)
-    fig.set_xlim(xmin=0,xmax=completeplayback.size)
+    fig.set_xlim(xmin=0,xmax=finalplayback.size/float(FS))
     fig.set_ylim(ymin=-1,ymax=1)
-    plt.plot(recordedsound)
+    plt.plot(np.linspace(0,finalplayback.size/float(FS),finalplayback.size) ,recordedsound)
+    plt.xlabel('time (seconds)')
+    plt.ylabel('recorded signal')
+    plt.title('All recorded signals - amplitude plot')
+
+
+    plt.figure(5)
+    f,t,Sxx=scipy.signal.spectrogram(hp_filt_gaussiannoise,FS)
+    plt.title('High pass filtered signal at %d Hz'%(highpass_frequency))
+    plt.pcolormesh(t, f, Sxx)
+    plt.ylabel('Frequency [Hz]')
+    plt.xlabel('Time [sec]')
+    plt.show()
+
+
+
+    print('plots are ready')
