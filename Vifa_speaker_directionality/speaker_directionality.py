@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+"""m
 Created on Fri Nov 18 10:16:48 2016
 
 Script to plyaback white gaussian noise from the Vifa speakers
@@ -15,16 +15,38 @@ import scipy.io.wavfile as wavfile
 import scipy.io
 import os
 import matplotlib.pyplot as plt
+import time
+
+starttime=time.time()
+
+def convert2wav(recordedarray,fullpathnames):
+        for column in range(recordedarray.shape[1]):
+            filewriter(recordedarray[:,column],fullpathnames[column])
+
+
+
+def compensateIR(inputsignal,cIR):
+    try:
+        outputsignal=scipy.signal.convolve(inputsignal,cIR,mode='same')
+        return(outputsignal)
+
+    except:
+        print('there is an error in the inputsignal or cIR')
+
+
+
+
+
 
 FS=192 *1000 # sampling rate
-playbackdurn=5.0 # length of playback sound
-silencedurn=2
-numplaybacks=7
+playbackdurn=2.0 # length of playback sound
+silencedurn=1
+numplaybacks=17
 
 rampduration=0.1 # length of up and down ramp in seconds
 amplification=0 # in dB
 
-speaker_cIR_address='C:\\Users\\tbeleyur\\Google Drive\\Holger Goerlitz- IMPRS\\PHD_2015\\projects and analyses\\bat_ensonification\\HRTF and conspecific sensing_project\\Vifa_speaker_directionality\\calibration_Vifa_2016_07_21'
+speaker_cIR_address='C:\\Users\\tbeleyur\\Google Drive\\Holger Goerlitz- IMPRS\\PHD_2015\\projects and analyses\\bat_ensonification\\HRTF and conspecific sensing_project\\Vifa_speaker_directionality\\peaker_cIR_included_Vifa_2016_07_21'
 speaker_cIR_filename='compIR_2016_07_21_compIR_1-90KHz.mat'
 cIR_matfile=os.path.join(speaker_cIR_address,speaker_cIR_filename)
 
@@ -94,20 +116,6 @@ print('\n recording and playback stopped....')
 
 
 
-def convert2wav(recordedarray,fullpathnames):
-        for column in range(recordedarray.shape[1]):
-            filewriter(recordedarray[:,column],fullpathnames[column])
-
-def compensateIR(inputsignal,cIR):
-    try:
-        outputsignal=scipy.signal.convolve(inputsignal,cIR,mode='same')
-
-    except:
-        print('there is an error in the inputsignal or cIR')
-
-    return(outputsignal)
-
-
 
 
 
@@ -134,6 +142,8 @@ if __name__=='__main__':
 #    plt.plot(completeplayback)
     plt.rcParams['agg.path.chunksize'] = 100000
 
+    print('plots are being prepared')
+
     plt.figure(3)
     fig=plt.subplot(111)
     fig.set_xlim(xmin=0,xmax=finalplayback.size/float(FS))
@@ -152,7 +162,7 @@ if __name__=='__main__':
     plt.xlabel('Time [sec]')
     plt.show()
 
-    print('plots are ready')
+
 
     targetdir='C:\\Users\\tbeleyur\\Documents\\speaker_directionality_measurements'
 
@@ -166,28 +176,57 @@ if __name__=='__main__':
 
     convert2wav(recordedsound,fullpaths)
 
-    readthisfile=targetdir+'\\mic_30dB_amplifier_-24dB'+filenames[1]
-    readfs,a=wavfile.read(readthisfile)
-
-
-    plt.figure(6)
-    f1,t1,sxx1=scipy.signal.spectrogram(a)
-    plt.pcolormesh(t1,f1,sxx1)
-    plt.colorbar()
+#    readthisfile=targetdir+'\\mic_30dB_amplifier_-24dB'+filenames[1]
+#    readfs,a=wavfile.read(readthisfile)
+#
+#
+#    plt.figure(6)
+#    f1,t1,sxx1=scipy.signal.spectrogram(a)
+#    plt.pcolormesh(t1,f1,sxx1)
+#    plt.colorbar()
 
 
 
     plt.figure(7)
     subfig=plt.subplot(211)
     fraw,traw,sraw=scipy.signal.spectrogram(raw_gaussiannoise)
-    plt.pcolormesh(traw,fraw,sraw)
+    plt.pcolormesh(traw,fraw,20*np.log10(sraw))
     plt.colorbar()
     plt.title('raw gaussian noise')
 
     plt.subplot(212)
     fcomp,tcomp,scomp=scipy.signal.spectrogram(speaker_comp_noise)
-    plt.pcolormesh(tcomp,fcomp,scomp)
+    plt.pcolormesh(tcomp,fcomp,20*np.log10(scomp))
     plt.colorbar()
-    plt.title('speaker compensated gaussian noise')
+    plt.title('input signal to speaker w speaker cIR')
+
+    plt.figure(8)
+    subfig=plt.subplot(211)
+    flat_recsound=np.ndarray.flatten(recordedsound[:,1])
+    frec,trec,srec=scipy.signal.spectrogram(flat_recsound)
+    plt.pcolormesh(trec,frec,20*np.log10(srec))
+    plt.colorbar()
+    plt.title('spectrogram of raw recorded sound')
+
+    plt.subplot(212)
+    mic_cIR_address=speaker_cIR_address='C:\\Users\\tbeleyur\\Google Drive\\Holger Goerlitz- IMPRS\\PHD_2015\\projects and analyses\\bat_ensonification\\HRTF and conspecific sensing_project\\Microphone_cIR'
+    mic_cIR_filename='compIR_mic1545_elvn0_azmth0.mat'
+    mic_cIR_matfile=scipy.io.loadmat(os.path.join(mic_cIR_address,mic_cIR_filename))
+    cIR_mic=np.ndarray.flatten( np.transpose(scipy.io.loadmat(cIR_matfile)['irc'] ))
+
+    micrec_w_cIR=compensateIR(recordedsound[:,1],cIR_mic)
+    fcomp,tcomp,scomp=scipy.signal.spectrogram(micrec_w_cIR)
+    plt.pcolormesh(tcomp,fcomp,10*np.log10(scomp))
+    plt.colorbar()
+    plt.title('spectrogram of recording post mic cIR')
 
 
+    figure(9)
+    fcomp,tcomp,scomp=scipy.signal.spectrogram(micrec_w_cIR)
+    plt.pcolormesh(tcomp,fcomp,20*np.log10(scomp))
+    plt.colorbar()
+    plt.title('spectrogram of recording post mic cIR- noise playbacks w %d degrees change from 0-90'%90/numplaybacks)
+
+    print('plots are ready')
+
+    print('%d playbacks and plotting took %d seconds'%(numplaybacks,time.time()-starttime))
