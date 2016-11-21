@@ -176,6 +176,8 @@ if __name__=='__main__':
 
     convert2wav(recordedsound,fullpaths)
 
+    print('the recordedsound has been written to this address: %s'%targetdir)
+
 #    readthisfile=targetdir+'\\mic_30dB_amplifier_-24dB'+filenames[1]
 #    readfs,a=wavfile.read(readthisfile)
 #
@@ -216,7 +218,7 @@ if __name__=='__main__':
 
     micrec_w_cIR=compensateIR(recordedsound[:,1],cIR_mic)
     fcomp,tcomp,scomp=scipy.signal.spectrogram(micrec_w_cIR)
-    plt.pcolormesh(tcomp,fcomp,10*np.log10(scomp))
+    plt.pcolormesh(tcomp,fcomp,0*np.log10(scomp))
     plt.colorbar()
     plt.title('spectrogram of recording post mic cIR')
 
@@ -230,3 +232,5 @@ if __name__=='__main__':
     print('plots are ready')
 
     print('%d playbacks and plotting took %d seconds'%(numplaybacks,time.time()-starttime))
+
+    np.apply_along_axis(convert2wav,)
