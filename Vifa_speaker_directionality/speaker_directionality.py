@@ -12,6 +12,9 @@ import sounddevice as sd
 import matplotlib.pyplot as plt
 import scipy.signal
 import scipy.io.wavfile as wavfile
+import scipy.io
+import os
+import matplotlib.pyplot as plt
 
 FS=192 *1000 # sampling rate
 playbackdurn=5.0 # length of playback sound
@@ -21,8 +24,14 @@ numplaybacks=7
 rampduration=0.1 # length of up and down ramp in seconds
 amplification=0 # in dB
 
-highpass_frequency=1*1000
+speaker_cIR_address='C:\\Users\\tbeleyur\\Google Drive\\Holger Goerlitz- IMPRS\\PHD_2015\\projects and analyses\\bat_ensonification\\HRTF and conspecific sensing_project\\Vifa_speaker_directionality\\calibration_Vifa_2016_07_21'
+speaker_cIR_filename='compIR_2016_07_21_compIR_1-90KHz.mat'
+cIR_matfile=os.path.join(speaker_cIR_address,speaker_cIR_filename)
 
+raw_speaker_cIR=np.transpose(scipy.io.loadmat(cIR_matfile)['irc'] )
+speaker_cIR=np.ndarray.flatten(raw_speaker_cIR)
+
+highpass_frequency=1*1000
 
 playbacksamples=int(playbackdurn*FS)
 rampsamples=int(rampduration*FS)
@@ -32,11 +41,19 @@ silencesamples=int(silencedurn*FS)
 
 raw_gaussiannoise=np.random.normal(0.0,0.05,playbacksamples)
 
+
+# compensate the Impulse Response of the Vifa speaker - to obtain a uniform
+# noise spectrum :
+
+speaker_comp_noise=scipy.signal.convolve(raw_gaussiannoise,speaker_cIR,mode='same') # DO I NEED TO DO A 'SUM' THING HERE  - AS SHOWN IN THE SCIPY DOCS PAGE ?
+
+
 # highpass filter the signal
 
 a,b=scipy.signal.butter(8,float(highpass_frequency)/(FS/2),btype='high')
 
-hp_filt_gaussiannoise=scipy.signal.lfilter(a,b,raw_gaussiannoise)
+hp_filt_gaussiannoise=scipy.signal.lfilter(a,b,speaker_comp_noise)
+
 
 # perform windowing at front and back to have a slow ramp up and ramp down
 hamming_window=np.hamming(2*rampsamples)
@@ -74,7 +91,6 @@ playbackarray=np.column_stack((finalplayback,syncsignal,finalplayback))
 print('\n recording and playback intiated....')
 recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2,3],input_mapping=[2,9,3],blocking=True,device=DeviceIndex)
 print('\n recording and playback stopped....')
-
 
 
 
@@ -127,6 +143,7 @@ if __name__=='__main__':
     targetdir='C:\\Users\\tbeleyur\\Documents\\speaker_directionality_measurements'
 
     filenames=['\\sync_signal.wav','\\Sanken_11.wav','\\internal_record.wav']
+
     fullpaths=map(lambda x: targetdir+x,filenames)
 
     filewriter=lambda np_array,file_name: wavfile.write(file_name,FS,np_array)
@@ -137,6 +154,28 @@ if __name__=='__main__':
 
     convert2wav(recordedsound,fullpaths)
 
-    readthisfile=targetdir+'\\mic_30dB_amplifier_-18dB'+filenames[1]
+    readthisfile=targetdir+'\\mic_30dB_amplifier_-24dB'+filenames[1]
     readfs,a=wavfile.read(readthisfile)
-    plt.plot(a)
+
+
+    plt.figure(6)
+    f1,t1,sxx1=scipy.signal.spectrogram(a)
+    plt.pcolormesh(t1,f1,sxx1)
+    plt.colorbar()
+
+
+
+    plt.figure(7)
+    subfig=plt.subplot(211)
+    fraw,traw,sraw=scipy.signal.spectrogram(raw_gaussiannoise)
+    plt.pcolormesh(traw,fraw,sraw)
+    plt.colorbar()
+    plt.title('raw gaussian noise')
+
+    plt.subplot(212)
+    fcomp,tcomp,scomp=scipy.signal.spectrogram(speaker_comp_noise)
+    plt.pcolormesh(tcomp,fcomp,scomp)
+    plt.colorbar()
+    plt.title('speaker compensated gaussian noise')
+
+
