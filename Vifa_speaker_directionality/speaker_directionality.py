@@ -45,7 +45,7 @@ raw_gaussiannoise=np.random.normal(0.0,0.05,playbacksamples)
 # compensate the Impulse Response of the Vifa speaker - to obtain a uniform
 # noise spectrum :
 
-speaker_comp_noise=scipy.signal.convolve(raw_gaussiannoise,speaker_cIR,mode='same') # DO I NEED TO DO A 'SUM' THING HERE  - AS SHOWN IN THE SCIPY DOCS PAGE ?
+speaker_comp_noise=compensateIR(raw_gaussiannoise,speaker_cIR) # DO I NEED TO DO A 'SUM' THING HERE  - AS SHOWN IN THE SCIPY DOCS PAGE ?
 
 
 # highpass filter the signal
@@ -92,6 +92,20 @@ print('\n recording and playback intiated....')
 recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2,3],input_mapping=[2,9,3],blocking=True,device=DeviceIndex)
 print('\n recording and playback stopped....')
 
+
+
+def convert2wav(recordedarray,fullpathnames):
+        for column in range(recordedarray.shape[1]):
+            filewriter(recordedarray[:,column],fullpathnames[column])
+
+def compensateIR(inputsignal,cIR):
+    try:
+        outputsignal=scipy.signal.convolve(inputsignal,cIR,mode='same')
+
+    except:
+        print('there is an error in the inputsignal or cIR')
+
+    return(outputsignal)
 
 
 
@@ -148,9 +162,7 @@ if __name__=='__main__':
 
     filewriter=lambda np_array,file_name: wavfile.write(file_name,FS,np_array)
 
-    def convert2wav(recordedarray,fullpathnames):
-        for column in range(recordedarray.shape[1]):
-            filewriter(recordedarray[:,column],fullpathnames[column])
+
 
     convert2wav(recordedsound,fullpaths)
 
