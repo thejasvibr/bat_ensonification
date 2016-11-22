@@ -3,7 +3,7 @@
 Created on Fri Nov 18 10:16:48 2016
 
 Script to plyaback white gaussian noise from the Vifa speakers
-
+and record with the GRAS microphone
 
 @author: tbeleyur
 """
@@ -39,11 +39,11 @@ def compensateIR(inputsignal,cIR):
 
 
 FS=192 *1000 # sampling rate
-playbackdurn=2.0 # length of playback sound
+playbackdurn=3.0 # length of playback sound
 silencedurn=1
-numplaybacks=17
+numplaybacks=19
 
-rampduration=0.1 # length of up and down ramp in seconds
+rampduration=0.3 # length of up and down ramp in seconds
 amplification=0 # in dB
 
 speaker_cIR_address='C:\\Users\\tbeleyur\\Google Drive\\Holger Goerlitz- IMPRS\\PHD_2015\\projects and analyses\\bat_ensonification\\HRTF and conspecific sensing_project\\Vifa_speaker_directionality\\peaker_cIR_included_Vifa_2016_07_21'
@@ -67,8 +67,8 @@ raw_gaussiannoise=np.random.normal(0.0,0.05,playbacksamples)
 # compensate the Impulse Response of the Vifa speaker - to obtain a uniform
 # noise spectrum :
 
-speaker_comp_noise=compensateIR(raw_gaussiannoise,speaker_cIR) # DO I NEED TO DO A 'SUM' THING HERE  - AS SHOWN IN THE SCIPY DOCS PAGE ?
-
+speaker_comp_noise=compensateIR(raw_gaussiannoise,speaker_cIR)
+print('speaker cIR has been convolved with noise signal ')
 
 # highpass filter the signal
 
@@ -76,6 +76,7 @@ a,b=scipy.signal.butter(8,float(highpass_frequency)/(FS/2),btype='high')
 
 hp_filt_gaussiannoise=scipy.signal.lfilter(a,b,speaker_comp_noise)
 
+print('high pass filtering complete at %d' %highpass_frequency)
 
 # perform windowing at front and back to have a slow ramp up and ramp down
 hamming_window=np.hamming(2*rampsamples)
@@ -85,11 +86,14 @@ windowed_noise=np.copy(hp_filt_gaussiannoise)
 windowed_noise[0:rampsamples]=hamming_window[0:rampsamples]*raw_gaussiannoise[0:rampsamples]
 windowed_noise[-rampsamples:playbacksamples]=hamming_window[-rampsamples:2*rampsamples]*raw_gaussiannoise[-rampsamples:playbacksamples]
 
-# create the sync-channel playback
+# create the silence between the pulses - within which the experimenter shifts the speaker's direciton
 
 silence_playback=np.zeros(silencedurn*FS)
 
 unitplayback=np.hstack((windowed_noise,silence_playback))
+
+
+# some silence before the whole playback - and after the whole playback
 
 startandend_silence=np.zeros(silencesamples)
 
@@ -111,40 +115,19 @@ playbackarray=np.column_stack((finalplayback,syncsignal,finalplayback))
 
 # initiate sounddevice for the simultaneous recording and playback:
 print('\n recording and playback intiated....')
-recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2,3],input_mapping=[2,9,3],blocking=True,device=DeviceIndex)
+recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2,3],input_mapping=[1,2,12],blocking=True,device=DeviceIndex)
 print('\n recording and playback stopped....')
-
-
-
-
-
-
 
 
 
 
 if __name__=='__main__':
 
-#
-#    plt.figure(1)
-#    fig=plt.subplot(111)
-#    fig.set_xlim(xmin=0,xmax=unitplayback.size)
-#    fig.set_ylim(ymin=-1,ymax=1)
-#    print('\n plots are being plotted')
-#    plt.title('single noise playback unit')
-#    plt.plot(unitplayback)
-
-
-#    plt.figure(2)
-#    fig=plt.subplot(111)
-#    fig.set_xlim(xmin=0,xmax=completeplayback.size)
-#    fig.set_ylim(ymin=-1,ymax=1)
-#    plt.plot(completeplayback)
     plt.rcParams['agg.path.chunksize'] = 100000
 
     print('plots are being prepared')
 
-    plt.figure(3)
+    plt.figure(1)
     fig=plt.subplot(111)
     fig.set_xlim(xmin=0,xmax=finalplayback.size/float(FS))
     fig.set_ylim(ymin=-1,ymax=1)
@@ -154,7 +137,7 @@ if __name__=='__main__':
     plt.title('All recorded signals - amplitude plot')
 
 
-    plt.figure(5)
+    plt.figure(2)
     f,t,Sxx=scipy.signal.spectrogram(hp_filt_gaussiannoise,FS)
     plt.title('High pass filtered signal at %d Hz'%(highpass_frequency))
     plt.pcolormesh(t, f, Sxx)
@@ -163,33 +146,7 @@ if __name__=='__main__':
     plt.show()
 
 
-
-    targetdir='C:\\Users\\tbeleyur\\Documents\\speaker_directionality_measurements'
-
-    filenames=['\\sync_signal.wav','\\Sanken_11.wav','\\internal_record.wav']
-
-    fullpaths=map(lambda x: targetdir+x,filenames)
-
-    filewriter=lambda np_array,file_name: wavfile.write(file_name,FS,np_array)
-
-
-
-    convert2wav(recordedsound,fullpaths)
-
-    print('the recordedsound has been written to this address: %s'%targetdir)
-
-#    readthisfile=targetdir+'\\mic_30dB_amplifier_-24dB'+filenames[1]
-#    readfs,a=wavfile.read(readthisfile)
-#
-#
-#    plt.figure(6)
-#    f1,t1,sxx1=scipy.signal.spectrogram(a)
-#    plt.pcolormesh(t1,f1,sxx1)
-#    plt.colorbar()
-
-
-
-    plt.figure(7)
+    plt.figure(3)
     subfig=plt.subplot(211)
     fraw,traw,sraw=scipy.signal.spectrogram(raw_gaussiannoise)
     plt.pcolormesh(traw,fraw,20*np.log10(sraw))
@@ -202,35 +159,27 @@ if __name__=='__main__':
     plt.colorbar()
     plt.title('input signal to speaker w speaker cIR')
 
-    plt.figure(8)
-    subfig=plt.subplot(211)
-    flat_recsound=np.ndarray.flatten(recordedsound[:,1])
+    plt.figure(4)
+    flat_recsound=np.ndarray.flatten(recordedsound[:,2].astype('float24'))
     frec,trec,srec=scipy.signal.spectrogram(flat_recsound)
     plt.pcolormesh(trec,frec,20*np.log10(srec))
     plt.colorbar()
-    plt.title('spectrogram of raw recorded sound')
-
-    plt.subplot(212)
-    mic_cIR_address=speaker_cIR_address='C:\\Users\\tbeleyur\\Google Drive\\Holger Goerlitz- IMPRS\\PHD_2015\\projects and analyses\\bat_ensonification\\HRTF and conspecific sensing_project\\Microphone_cIR'
-    mic_cIR_filename='compIR_mic1545_elvn0_azmth0.mat'
-    mic_cIR_matfile=scipy.io.loadmat(os.path.join(mic_cIR_address,mic_cIR_filename))
-    cIR_mic=np.ndarray.flatten( np.transpose(scipy.io.loadmat(cIR_matfile)['irc'] ))
-
-    micrec_w_cIR=compensateIR(recordedsound[:,1],cIR_mic)
-    fcomp,tcomp,scomp=scipy.signal.spectrogram(micrec_w_cIR)
-    plt.pcolormesh(tcomp,fcomp,0*np.log10(scomp))
-    plt.colorbar()
-    plt.title('spectrogram of recording post mic cIR')
-
-
-    figure(9)
-    fcomp,tcomp,scomp=scipy.signal.spectrogram(micrec_w_cIR)
-    plt.pcolormesh(tcomp,fcomp,20*np.log10(scomp))
-    plt.colorbar()
-    plt.title('spectrogram of recording post mic cIR- noise playbacks w %d degrees change from 0-90'%90/numplaybacks)
+    plt.title('spectrogram of raw recorded sound - with B & K microphone')
 
     print('plots are ready')
 
+    targetdir='C:\\Users\\tbeleyur\\Documents\\speaker_directionality_measurements'
+
+    filenames=['\\internal_record.wav','\\sync_signal.wav','\\GRAS_MICROPHONE.wav']
+
+    fullpaths=map(lambda x: targetdir+x,filenames)
+
+    filewriter=lambda np_array,file_name: wavfile.write(file_name,FS,np_array)
+
+
+    convert2wav(recordedsound,fullpaths)
+
+    print('the recordedsound has been written to this address: %s'%targetdir)
+
     print('%d playbacks and plotting took %d seconds'%(numplaybacks,time.time()-starttime))
 
-    np.apply_along_axis(convert2wav,)
