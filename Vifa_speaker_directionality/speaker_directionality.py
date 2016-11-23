@@ -40,10 +40,10 @@ def compensateIR(inputsignal,cIR):
 
 FS=192 *1000 # sampling rate
 playbackdurn=3.0 # length of playback sound
-silencedurn=1
+silencedurn=1.5
 numplaybacks=19
 
-rampduration=0.3 # length of up and down ramp in seconds
+rampduration=0.1 # length of up and down ramp in seconds
 amplification=0 # in dB
 
 speaker_cIR_address='C:\\Users\\tbeleyur\\Google Drive\\Holger Goerlitz- IMPRS\\PHD_2015\\projects and analyses\\bat_ensonification\\HRTF and conspecific sensing_project\\Vifa_speaker_directionality\\peaker_cIR_included_Vifa_2016_07_21'
@@ -106,7 +106,7 @@ syncsignal=np.zeros(finalplayback.size)
 
 syncsignal[startandend_silence.size+1]=1 # indicate the start of signal
 
-DeviceIndex=40 # for Fireface ASIO USB
+DeviceIndex=40 # 40 for Fireface ASIO USB
 
 
 # stack the two output signal  as 2 columns
@@ -115,7 +115,7 @@ playbackarray=np.column_stack((finalplayback,syncsignal,finalplayback))
 
 # initiate sounddevice for the simultaneous recording and playback:
 print('\n recording and playback intiated....')
-recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2,3],input_mapping=[1,2,12],blocking=True,device=DeviceIndex)
+recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2,3],input_mapping=[1,2,3],blocking=True,device=DeviceIndex,dtype='int16')
 print('\n recording and playback stopped....')
 
 
@@ -127,11 +127,13 @@ if __name__=='__main__':
 
     print('plots are being prepared')
 
+    maxval=float(2**15 -1 )
+
     plt.figure(1)
     fig=plt.subplot(111)
     fig.set_xlim(xmin=0,xmax=finalplayback.size/float(FS))
     fig.set_ylim(ymin=-1,ymax=1)
-    plt.plot(np.linspace(0,finalplayback.size/float(FS),finalplayback.size) ,recordedsound)
+    plt.plot(np.linspace(0,finalplayback.size/float(FS),finalplayback.size),recordedsound/maxval)
     plt.xlabel('time (seconds)')
     plt.ylabel('recorded signal')
     plt.title('All recorded signals - amplitude plot')
@@ -160,11 +162,13 @@ if __name__=='__main__':
     plt.title('input signal to speaker w speaker cIR')
 
     plt.figure(4)
-    flat_recsound=np.ndarray.flatten(recordedsound[:,2].astype('float24'))
+
+    normrec=(recordedsound[:,2])/maxval
+    flat_recsound=np.ndarray.flatten(normrec)
     frec,trec,srec=scipy.signal.spectrogram(flat_recsound)
-    plt.pcolormesh(trec,frec,20*np.log10(srec))
+    plt.pcolormesh(trec,frec,10*np.log10(srec))
     plt.colorbar()
-    plt.title('spectrogram of raw recorded sound - with B & K microphone')
+    plt.title('spectrogram of raw recorded sound - with GRAS microphone')
 
     print('plots are ready')
 
@@ -182,4 +186,14 @@ if __name__=='__main__':
     print('the recordedsound has been written to this address: %s'%targetdir)
 
     print('%d playbacks and plotting took %d seconds'%(numplaybacks,time.time()-starttime))
+
+
+    silencerec=normrec[0:193400]
+    rmssilence=np.sqrt(np.mean(silencerec**2))
+
+    playbackrec=normrec[194304:194304+playbacksamples]
+    rmsplayback=np.sqrt(np.mean(playbackrec**2))
+
+    print('Signal to noise rms ratio is : %d dB' %(20*np.log10(rmsplayback/rmssilence)))
+
 
