@@ -54,18 +54,14 @@ def calculateIR(originalsignal,recsignal):
 
     pass
 
-def calcmaxcorr(recsig,internalsig,FS,mic2spkrdistance,vsound):
-
-    delayrange=mic2spkrdistance/vsound +0.002 #add 2 ms just for safety
-
-    numdelaysamples=np.around(delayrange*FS)
+def calcmaxcorr(recsig,internalsig):
 
     # scan one second of signal + delay
-    crosscor=np.correlate(recsig[:FS+numdelaysamples],internalsig[:FS+numdelaysamples],'same')
+    crosscor=np.correlate(recsig,internalsig,'same')
     lagindex= np.argmax(crosscor)         #np.where(crosscor==max(crosscor))[0][0]
     delayindex=lagindex - np.around(np.shape(internalsig)[0]/2.0)
     if delayindex<0:
-        print('the recorded signal begins before the internal signal')
+        print('the recorded signal begins before the internal signal %d'%delayindex)
 
     else :
         return(delayindex)
