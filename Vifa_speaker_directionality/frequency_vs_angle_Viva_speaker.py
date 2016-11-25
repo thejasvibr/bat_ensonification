@@ -57,14 +57,28 @@ norm_recplaybacks=recplaybacks/maxval
 
 recordedffts=np.apply_along_axis( scipy.fftpack.rfft ,0,norm_recplaybacks,1024)
 
+## CHECK FOR PROPER SMOOTHING OPTIONS - THIS IS ONLY A STANDBY !!
+
+
+# stolen code from :  http://stackoverflow.com/questions/20618804/how-to-smooth-a-curve-in-the-right-way
 def smooth(y, box_pts):
     box = np.ones(box_pts)/box_pts
     y_smooth = np.convolve(y, box, mode='same')
     return y_smooth
 
-smoothfft=np.apply_along_axis(smooth,1,20*np.log10(abs(recordedffts)),150)
 
-plt.plot(smoothfft)
+# SHOULD I BE MULTIPLYING BY 10 OR 20 ???????????????????????
+
+smoothfft=np.apply_along_axis(smooth,1,20*np.log10(abs(recordedffts)),300)
+
+freqaxis=np.linspace(0,FS/2000,1024)
+plt.plot(freqaxis,smoothfft)
+plt.xlabel('frequency - KHz')
+plt.ylabel('dB intensity')
+plt.xlim(10,96)
+
+origfreq=scipy.fftpack.rfft(recsound[0]/maxval,1024)
+plt.plot(smooth(origfreq,200))
 
 
 
