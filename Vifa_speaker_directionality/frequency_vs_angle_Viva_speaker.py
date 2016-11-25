@@ -72,8 +72,14 @@ windowsize=1000
 
 ## CHECK FOR PROPER SMOOTHING OPTIONS - THIS IS ONLY A STANDBY !!
 #smoothfft=np.apply_along_axis(smooth,1,20*np.log10(np.abs(recordedffts)),windowsize)
+import statsmodels.nonparametric.smoothers_lowess as lw
 
-#freqaxis=np.linspace(0,FS/2000,1024)
+
+dta=20*np.log10(np.abs(recordedffts[:,0]))
+
+ldta=lw.lowess(dta,range(dta.shape[0]),frac=0.01,it=0,delta=10000)
+
+
 plt.plot(20*np.log10(np.abs(recordedffts[:,0])))
 plt.plot(20*np.log10(np.abs(recordedffts[:,8])))
 plt.plot(20*np.log10(np.abs(recordedffts[:,18])))
@@ -82,7 +88,7 @@ plt.ylabel('dB intensity re 1')
 #plt.xlim(10,96)
 
 origfreq=scipy.fftpack.rfft(recsound[0]/maxval)
-plt.plot(smooth(origfreq,windowsize))
+plt.plot((20*np.log10(np.abs(origfreq))))
 
 
 plt.figure(3)
