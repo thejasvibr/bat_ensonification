@@ -55,30 +55,49 @@ recplaybacks=nsfuncs.extractplaybacks(hp_recordedsig,playbacksamples,silencesamp
 norm_recplaybacks=recplaybacks/maxval
 # now let's apply an fft on each recorded signal :
 
-recordedffts=np.apply_along_axis( scipy.fftpack.rfft ,0,norm_recplaybacks,1024)
-
-## CHECK FOR PROPER SMOOTHING OPTIONS - THIS IS ONLY A STANDBY !!
+recordedffts=np.apply_along_axis( scipy.fftpack.rfft ,0,norm_recplaybacks)
 
 
-# stolen code from :  http://stackoverflow.com/questions/20618804/how-to-smooth-a-curve-in-the-right-way
-def smooth(y, box_pts):
-    box = np.ones(box_pts)/box_pts
-    y_smooth = np.convolve(y, box, mode='same')
-    return y_smooth
+
+
+#http://stackoverflow.com/questions/5613244/root-mean-square-in-numpy-and-complications-of-matrix-and-arrays-of-numpy
+def rms(V):
+    return(np.linalg.norm(V)/np.sqrt(V.size))
+
 
 
 # SHOULD I BE MULTIPLYING BY 10 OR 20 ???????????????????????
+windowsize=1000
+# only using the real part  here - what about the Imaginary part ???!!
 
-smoothfft=np.apply_along_axis(smooth,1,20*np.log10(abs(recordedffts)),300)
+## CHECK FOR PROPER SMOOTHING OPTIONS - THIS IS ONLY A STANDBY !!
+#smoothfft=np.apply_along_axis(smooth,1,20*np.log10(np.abs(recordedffts)),windowsize)
 
-freqaxis=np.linspace(0,FS/2000,1024)
-plt.plot(freqaxis,smoothfft)
+#freqaxis=np.linspace(0,FS/2000,1024)
+plt.plot(20*np.log10(np.abs(recordedffts[:,0])))
+plt.plot(20*np.log10(np.abs(recordedffts[:,8])))
+plt.plot(20*np.log10(np.abs(recordedffts[:,18])))
 plt.xlabel('frequency - KHz')
-plt.ylabel('dB intensity')
-plt.xlim(10,96)
+plt.ylabel('dB intensity re 1')
+#plt.xlim(10,96)
 
-origfreq=scipy.fftpack.rfft(recsound[0]/maxval,1024)
-plt.plot(smooth(origfreq,200))
+origfreq=scipy.fftpack.rfft(recsound[0]/maxval)
+plt.plot(smooth(origfreq,windowsize))
 
 
+plt.figure(3)
+plt.plot(norm_recplaybacks[:,0])
+plt.plot(norm_recplaybacks[:,18])
+
+
+plt.figure(4)
+plt.subplot(311)
+t,f,s=scipy.signal.spectrogram(norm_recplaybacks[:,0])
+plt.pcolormesh(f,t,20*np.log10(np.abs(s)))
+plt.colorbar()
+
+plt.subplot(312)
+t,f,s=scipy.signal.spectrogram(norm_recplaybacks[:,8])
+plt.pcolormesh(f,t,20*np.log10(np.abs(s)))
+plt.colorbar()
 
