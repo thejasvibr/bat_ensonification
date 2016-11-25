@@ -29,6 +29,15 @@ def findsyncpulse(syncsignal):
 
     return(syncindex)
 
+def  normalisesignal(signal,bitrecording):
+
+    maxval=2**bitrecording -1
+    normfactor=maxval/2.0
+
+    normsignal=signal/normfactor
+
+    return(normsignal)
+
 
 def signalpostpulse(recsound,syncindex):
 
@@ -53,9 +62,9 @@ def calcmaxcorr(recsig,internalsig,FS,mic2spkrdistance,vsound):
 
     # scan one second of signal + delay
     crosscor=np.correlate(recsig[:FS+numdelaysamples],internalsig[:FS+numdelaysamples],'same')
-    lagindex=np.where(crosscor==max(crosscor))[0][0]
-    delayindex=lagindex - np.around(np.shape(internalsig)[0]/2)
-    if not( delayindex>0):
+    lagindex= np.argmax(crosscor)         #np.where(crosscor==max(crosscor))[0][0]
+    delayindex=lagindex - np.around(np.shape(internalsig)[0]/2.0)
+    if delayindex<0:
         print('the recorded signal begins before the internal signal')
 
     else :
@@ -63,7 +72,7 @@ def calcmaxcorr(recsig,internalsig,FS,mic2spkrdistance,vsound):
 
 
 
-def extractplaybacks(internalsig,recsig,playbacksamples,silencesamples,numplaybacks,spearkermicdist,FS,vsound):
+def extractplaybacks(internalsig,recsig,playbacksamples,startsilencesamples,silencesamples,numplaybacks,spearkermicdist,FS,vsound):
     '''
     cuts out the noise playbacks and assigns them as separate np.arrays
     Input:
@@ -169,7 +178,11 @@ if __name__== '__main__':
     recplaybacks=extractplaybacks(internalsig,recsig,playbacksamples,silencesamples,numplaybacks,0.375,192000,340)
 
 
+    q=fftpack.fft(recsound[0])
+    r=fftpack.fft(recsound[1])
+    qr=-q.conjugate()
+    rr=-r.conjugate()
 
-
+    np.argmax(np.abs(fftpack.ifft(rr*qr)))
 
 
