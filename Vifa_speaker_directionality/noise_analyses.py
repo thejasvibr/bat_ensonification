@@ -68,13 +68,13 @@ def calcmaxcorr(recsig,internalsig):
         return(delayindex)
 
 
-def findrecordingdelay(recordedsig,internalsig,startsilence,playbacksamples,speaker2micdist,vsound,FS):
+def findrecordingdelay(recordedsig,internalsig,correlnlength,speaker2micdist,vsound,FS):
     '''
     finds the time lag in number of samples between the start of speaker playback and mic recording
 
     Inputs:
-        recordedsig
-        internalsig
+        recordedsig: np.array. the array with mike recordings
+        internalsig: np.array. the array with the internal signal which was played through the signal
         speaker2micdist: float. distance between mic and speaker in meters
         vsound: float. speed of sound
         FS: integer. sampling rate
@@ -85,7 +85,7 @@ def findrecordingdelay(recordedsig,internalsig,startsilence,playbacksamples,spea
 
     delaysamples=int(np.around(traveltime*FS))
 
-    recfirstplayback=recordedsig[:playbacksamples+delaysamples+startsilence]
+    recfirstplayback=recordedsig[:correlnlength+delaysamples]
     internalfirstplayback=internalsig[:recfirstplayback.shape[0]]
     sigcor=np.correlate(recfirstplayback,internalfirstplayback,mode='same')
 
@@ -208,13 +208,13 @@ if __name__== '__main__':
     a,b=scipy.signal.butter(8,hp/192000.0,'high')
     hp_sound=scipy.signal.lfilter(a,b,recsound[1])
 
-    reallagindex=findrecordingdelay(hp_sound,recsound[0],288000,576000,0.375,340,192000)
+    #reallagindex=findrecordingdelay(hp_sound,recsound[0],288000,576000,0.375,340,192000)
 
     syncindex=findsyncpulse(recsound[2])
     internalsig=signalpostpulse(recsound[0],syncindex)
 
     hp_recsig=signalpostpulse(hp_sound,syncindex)
-    postpulse_lagindex=findrecordingdelay(hp_recsig,internalsig,0,576000,0.375,340,192000)
+    postpulse_lagindex=findrecordingdelay(hp_recsig,internalsig,10000,0.375,340,192000)
 #
 #    # testing extractplaybacks:
 #    noisesig=np.random.normal(0,1,100)
