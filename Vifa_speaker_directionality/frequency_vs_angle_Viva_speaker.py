@@ -75,17 +75,21 @@ windowsize=1000
 import statsmodels.nonparametric.smoothers_lowess as lw
 
 
-dta=20*np.log10(np.abs(recordedffts[:,0]))
+scaletodBre1=lambda data: 20*np.log10(np.abs(data))
 
-ldta=lw.lowess(dta,range(dta.shape[0]),frac=0.01,it=0,delta=10000)
+logfft=np.apply_along_axis(scaletodBre1,1,recordedffts)
 
+def lowessmaker(data):
+    smoothed_data=lw.lowess(data,range(data.shape[0]),frac=0.01,it=0,delta=10000)
+    return(smoothed_data[:,1])
 
-plt.plot(20*np.log10(np.abs(recordedffts[:,0])))
-plt.plot(20*np.log10(np.abs(recordedffts[:,8])))
-plt.plot(20*np.log10(np.abs(recordedffts[:,18])))
+xfreqs=np.linspace(0,96,logfft[:,1].shape[0])
+for k in range(0,19,3):
+    plt.plot(xfreqs,lowessmaker(logfft[:,k]))
 plt.xlabel('frequency - KHz')
 plt.ylabel('dB intensity re 1')
 #plt.xlim(10,96)
+
 
 origfreq=scipy.fftpack.rfft(recsound[0]/maxval)
 plt.plot((20*np.log10(np.abs(origfreq))))
