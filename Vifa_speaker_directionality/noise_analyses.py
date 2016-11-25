@@ -67,8 +67,44 @@ def calcmaxcorr(recsig,internalsig):
         return(delayindex)
 
 
+def findrecordingdelay(recordedsig,internalsig,startsilence,playbacksamples,speaker2micdist,vsound,FS):
+    '''
+    finds the time lag in number of samples between the start of speaker playback and mic recording
 
-def extractplaybacks(internalsig,recsig,playbacksamples,startsilencesamples,silencesamples,numplaybacks,spearkermicdist,FS,vsound):
+    Inputs:
+        recordedsig
+        internalsig
+        speaker2micdist: float. distance between mic and speaker in meters
+        vsound: float. speed of sound
+        FS: integer. sampling rate
+
+
+    '''
+    traveltime=speaker2micdist/vsound
+
+    delaysamples=int(np.around(traveltime*FS))
+
+    recfirstplayback=recordedsig[:delaysamples+playbacksamples+startsilence]
+    internalfirstplayback=internalsig[:recfirstplayback.shape[0]]
+    sigcor=np.correlate(recfirstplayback,internalfirstplayback,mode='valid')
+
+    lagindex=np.argmax(sigcor)
+
+    return(lagindex)
+
+
+
+
+
+
+
+
+
+
+
+
+
+def extractplaybacks(internalsig,recsig,playbacksamples,silencesample,delayindex,numplaybacks):
     '''
     cuts out the noise playbacks and assigns them as separate np.arrays
     Input:
@@ -108,7 +144,25 @@ multiplewavreader=lambda file_name: wavfile.read(file_name)
 if __name__== '__main__':
 
     # tests for the various functions :
-    plt.rcParams['agg.path.chunksize'] = 100000
+    plt.rcParams['agg.path.chunksize'] = 10000
+
+     # now testing it with a real file ! :
+    FS=192000
+    targetdir='C:\\Users\\tbeleyur\\Documents\\speaker_directionality_measurements\\23_Nov_recordings_w)speakercIR_GRASmic\\round_1\\'
+    internal_name='internal_record.wav'
+    micrec_name='GRAS_MICROPHONE.wav'
+    syncrec_name='sync_signal.wav'
+    filenames=[internal_name,micrec_name,syncrec_name]
+
+    playbacksamples=FS*3.0
+    silencesamples=FS*1.5
+    numplaybacks=19
+
+
+    fullpaths=map(lambda x: targetdir+x,filenames)
+    recsound=map(lambda filename: wavfile.read(filename)[1],fullpaths)
+
+
 
 
     #testing findsyncpulse:
@@ -129,6 +183,23 @@ if __name__== '__main__':
 
 
 
+    # testing findrecordingdelay:
+    noissig=np.random.normal(0,0.1,10000)
+    backgnoise=np.random.normal(0,0.01,noissig.shape[0])
+    startsilence=np.zeros(1000)
+    spkr2micdist=0.375
+    vsound=340
+    samplerate=192000
+    delaysamples=int(np.around((spkr2micdist/vsound)*FS))
+
+
+    testplayback=np.hstack((startsilence,noissig ))
+    recordedplayback=np.hstack((  startsilence,np.zeros(delaysamples),noissig ))
+    sigcor=np.correlate(recordedplayback,testplayback,mode='same')
+
+    #findrecordingdelay(recordedsig,internalsig,startsilence,playbacksamples,speaker2micdist,vsound,FS)
+
+    delayindex=findrecordingdelay(recordedplayback,testplayback,startsilence.shape[0],noissig.shape[0],spkr2micdist,vsound,samplerate)
 
 
 
@@ -145,25 +216,12 @@ if __name__== '__main__':
     pbksamples=noisesig.shape[0]
     silencesampls=silence.shape[0]
 
+
+
     #extractplaybacks(internalsig,recsig,playbacksamples,silencesamples,numplaybacks,spearkermicdist,FS,vsound)
 
     #k=extractplaybacks(intrec,micrec,pbksamples,silencesampls,numplaybacks,0.4,192000,340)
 
-    # now testing it with a real file ! :
-    FS=192000
-    targetdir='C:\\Users\\tbeleyur\\Documents\\speaker_directionality_measurements\\23_Nov_recordings_w)speakercIR_GRASmic\\round_1\\'
-    internal_name='internal_record.wav'
-    micrec_name='GRAS_MICROPHONE.wav'
-    syncrec_name='sync_signal.wav'
-    filenames=[internal_name,micrec_name,syncrec_name]
-
-    playbacksamples=FS*3.0
-    silencesamples=FS*1.5
-    numplaybacks=19
-
-
-    fullpaths=map(lambda x: targetdir+x,filenames)
-    recsound=map(lambda filename: wavfile.read(filename)[1],fullpaths)
 
     # take signal only from postpulse
     syncindex=findsyncpulse(recsound[2])
