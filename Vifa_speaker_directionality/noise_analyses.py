@@ -95,7 +95,7 @@ def highpassfilter(signal,hpfreq,FS):
     return(hp_signal)
 
 
-def extractplaybacks(recsig,playbacksamples,silencesample,delayindex,numplaybacks):
+def extractplaybacks(recsig,playbacksamples,silencesamples,delayindex,numplaybacks):
     '''
     cuts out the noise playbacks and assigns them as separate np.arrays
     Input:
