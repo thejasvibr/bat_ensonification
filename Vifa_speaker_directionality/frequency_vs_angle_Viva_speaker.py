@@ -9,7 +9,7 @@ Created on Fri Nov 25 15:02:27 2016
 """
 import noise_analyses as nsfuncs
 from scipy.io import wavfile
-import matplotlib.pyplot as plt
+import pyqtgraph as pg
 import numpy as np
 import scipy.fftpack
 
@@ -80,15 +80,18 @@ scaletodBre1=lambda data: 20*np.log10(np.abs(data))
 logfft=np.apply_along_axis(scaletodBre1,1,recordedffts)
 
 def lowessmaker(data):
-    smoothed_data=lw.lowess(data,range(data.shape[0]),frac=0.01,it=0,delta=10000)
+    smoothed_data=lw.lowess(data,range(data.shape[0]),frac=0.01,it=0,delta=5000)
     return(smoothed_data[:,1])
 
+win=pg.plot(title='Frequency response across angles')
 xfreqs=np.linspace(0,96,logfft[:,1].shape[0])
-for k in range(0,19,3):
-    plt.plot(xfreqs,lowessmaker(logfft[:,k]))
+for k in range(19):
+    win.plot(xfreqs,lowessmaker(logfft[:,k]),pen=(k,19),name=k)
+
+
 plt.xlabel('frequency - KHz')
 plt.ylabel('dB intensity re 1')
-#plt.xlim(10,96)
+plt.xlim(min(xfreqs),max(xfreqs))
 
 
 origfreq=scipy.fftpack.rfft(recsound[0]/maxval)
