@@ -46,7 +46,7 @@ syncindex=nsfuncs.findsyncpulse(recsound[2])
 internalsig=nsfuncs.signalpostpulse(recsound[0],syncindex)
 recordedsig=nsfuncs.signalpostpulse(recsound[1],syncindex)
 
-hp_recordedsig=nsfuncs.highpassfilter(recordedsig,1000,FS)
+hp_recordedsig=nsfuncs.highpassfilter(recordedsig,1000.0,FS)
 
 recordingdelay=nsfuncs.findrecordingdelay(hp_recordedsig,internalsig,1000,0.375,330,FS)
 
@@ -56,14 +56,6 @@ norm_recplaybacks=recplaybacks/maxval
 # now let's apply an fft on each recorded signal :
 
 recordedffts=np.apply_along_axis( scipy.fftpack.rfft ,0,norm_recplaybacks)
-
-
-
-
-#http://stackoverflow.com/questions/5613244/root-mean-square-in-numpy-and-complications-of-matrix-and-arrays-of-numpy
-def rms(V):
-    return(np.linalg.norm(V)/np.sqrt(V.size))
-
 
 
 # SHOULD I BE MULTIPLYING BY 10 OR 20 ???????????????????????
@@ -83,31 +75,42 @@ def lowessmaker(data):
     smoothed_data=lw.lowess(data,range(data.shape[0]),frac=0.01,it=0,delta=10000)
     return(smoothed_data[:,1])
 
+
+
+plt.figure(1)
 xfreqs=np.linspace(0,96,logfft[:,1].shape[0])
-for k in range(0,19,3):
-    plt.plot(xfreqs,lowessmaker(logfft[:,k]))
+for k in [0,1,2,3,4,8,12,18]:
+    ang=k*5.0
+    plt.plot(xfreqs,lowessmaker(logfft[:,k]),label=('%d deg'%ang ))
 plt.xlabel('frequency - KHz')
 plt.ylabel('dB intensity re 1')
+plt.xlim(0,150)
+plt.title('Frequency content of recorded noise across angles')
+plt.legend()
+plt.grid(10)
 #plt.xlim(10,96)
 
 
-origfreq=scipy.fftpack.rfft(recsound[0]/maxval)
-plt.plot((20*np.log10(np.abs(origfreq))))
-
-
 plt.figure(3)
+plt.subplot(211)
 plt.plot(norm_recplaybacks[:,0])
+plt.title('on-axis amplitude profile')
+plt.ylim(-1,1)
+plt.subplot(212)
 plt.plot(norm_recplaybacks[:,18])
-
+plt.title('90degrees off-axis amplitude profile')
+plt.ylim(-1,1)
 
 plt.figure(4)
-plt.subplot(311)
+plt.subplot(211)
 t,f,s=scipy.signal.spectrogram(norm_recplaybacks[:,0])
-plt.pcolormesh(f,t,20*np.log10(np.abs(s)))
+plt.pcolormesh(f,t,scaletodBre1(s))
 plt.colorbar()
+plt.title('on-axis recorded playback')
 
-plt.subplot(312)
-t,f,s=scipy.signal.spectrogram(norm_recplaybacks[:,8])
-plt.pcolormesh(f,t,20*np.log10(np.abs(s)))
+plt.subplot(212)
+t,f,s90=scipy.signal.spectrogram(norm_recplaybacks[:,8])
+plt.pcolormesh(f,t,scaletodBre1(s90))
 plt.colorbar()
+plt.title('90 degrees away- recorded playback')
 

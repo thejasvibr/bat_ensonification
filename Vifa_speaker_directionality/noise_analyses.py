@@ -49,6 +49,9 @@ def signalpostpulse(recsound,syncindex):
 
     return(cutsound)
 
+#http://stackoverflow.com/questions/5613244/root-mean-square-in-numpy-and-complications-of-matrix-and-arrays-of-numpy
+def rms(V):
+    return(np.linalg.norm(V)/np.sqrt(V.size))
 
 
 def calculateIR(originalsignal,recsignal):
