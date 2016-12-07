@@ -41,10 +41,10 @@ def compensateIR(inputsignal,cIR):
 FS=192 *1000 # sampling rate
 playbackdurn=3.0 # length of playback sound
 silencedurn=1.5
-numplaybacks=19
+numplaybacks=3
 
 rampduration=0.1 # length of up and down ramp in seconds
-amplification=0 # in dB
+amplification=6 # in dB
 
 speaker_cIR_address='C:\\Users\\tbeleyur\\Google Drive\\Holger Goerlitz- IMPRS\\PHD_2015\\projects and analyses\\bat_ensonification\\HRTF and conspecific sensing_project\\Vifa_speaker_directionality\\peaker_cIR_included_Vifa_2016_07_21'
 speaker_cIR_filename='compIR_2016_07_21_compIR_1-90KHz.mat'
@@ -115,7 +115,7 @@ playbackarray=np.column_stack((finalplayback,syncsignal,finalplayback))
 
 # initiate sounddevice for the simultaneous recording and playback:
 print('\n recording and playback intiated....')
-recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2,3],input_mapping=[1,2,3],blocking=True,device=DeviceIndex,dtype='int16')
+recordedsound=sd.playrec(playbackarray,samplerate=FS,output_mapping=[1,2,3],input_mapping=[1,2,12],blocking=True,device=DeviceIndex,dtype='int16')
 print('\n recording and playback stopped....')
 
 
