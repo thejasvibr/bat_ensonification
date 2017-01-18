@@ -62,12 +62,12 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
 
 
-def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction,hp_fraction=1):
+def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction):
     # create a Dirac pulse (which has aLL frequencies)
     dirac_pulse = np.zeros(ir_length)
     dirac_pulse[ir_length/2] = 1
 
-    a,b = signal.butter(8,[lp_fraction,hp_fraction],btype='bandpass')
+    a,b = signal.butter(8,lp_fraction,btype='highpass')
 
     # filter the frequencies for the dirac pulse and the recorded IR:
     dirac_pulse_filtered = signal.lfilter(a,b,dirac_pulse)
