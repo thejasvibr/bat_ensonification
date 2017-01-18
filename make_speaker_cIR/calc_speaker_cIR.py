@@ -99,7 +99,7 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 
 
 
-durn_pbk = 2.0
+durn_pbk = 1.0
 FS = 192000
 numramp_samples = 0.1*FS
 mic_speaker_dist = 1.0 # in meters
@@ -109,7 +109,7 @@ delay_time = mic_speaker_dist/vsound
 pbk_sig =  add_ramps( numramp_samples ,gen_white_noise(int(durn_pbk*FS),0,0.1))
 
 print('raw sound being played now...')
-rec_sound = sd.playrec(pbk_sig,FS,dtype='float',output_mapping=[1],input_mapping=[1],device=40)
+rec_sound = sd.playrec(pbk_sig,FS,dtype='float',output_mapping=[1],input_mapping=[12],device=40)
 sd.wait()
 
 print('signal processing happening now...')
@@ -125,11 +125,11 @@ amp_dB = 20*np.log10(np.std(pbk_sig)/np.std(corrected_sig))  # in dB
 
 amp_factor = 10**(amp_dB/20.0)
 
-rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,output_mapping=[1],input_mapping=[1],dtype='float',device=40)
+rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,output_mapping=[1],input_mapping=[12],dtype='float',device=40)
 sd.wait()
 #plt.plot(cir)
 
-smoothing_freqs = np.linspace(0,FS/2,100)
+smoothing_freqs = np.linspace(0,FS/2,1000)
 
 
 plt.figure(3)
@@ -139,7 +139,7 @@ plt.plot(rec_sound[delay_samples:])
 plt.title('original recorded signal')
 
 plt.subplot(412)
-orig_fft = spyfft.rfft(rec_sound[delay_samples])
+orig_fft = spyfft.rfft(rec_sound[delay_samples:])
 num_freqs= np.linspace(0,FS/2,orig_fft.size)
 plt.plot(num_freqs,20*np.log10(abs(orig_fft)))
 plt.title('FFT original recorded sound')
@@ -149,18 +149,25 @@ plt.plot(smoothing_freqs,sm_fft_orig)
 
 
 plt.subplot(413)
-plt.plot(rec_corrected_sound)
+plt.plot(rec_corrected_sound[delay_samples:])
 plt.title('cIR X original sound recorded sound')
 
 
 plt.subplot(414)
-crct_sig_fft = spyfft.rfft(rec_corrected_sound)
+crct_sig_fft = spyfft.rfft(rec_corrected_sound[delay_samples:])
 num_freqs_crct= np.linspace(0,FS/2,crct_sig_fft.size)
 plt.plot(num_freqs_crct,20*np.log10(abs(crct_sig_fft)))
 plt.title('FFT: with cIR recorded sound')
 
 sm_fft= oned_fft_interp(smoothing_freqs,num_freqs_crct,crct_sig_fft)
 plt.plot(smoothing_freqs,sm_fft)
+
+plt.figure(4)
+sm_fft= oned_fft_interp(smoothing_freqs,num_freqs_crct,crct_sig_fft)
+plt.plot(smoothing_freqs,sm_fft,'r')
+sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft)
+plt.plot(smoothing_freqs,sm_fft_orig,'g')
+
 
 #fft_res = spyfft.rfft(ccor)
 #plt.plot(np.linspace(0,FS/2,2048),20*np.log10(abs(fft_res)))
