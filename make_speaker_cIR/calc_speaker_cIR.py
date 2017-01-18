@@ -41,7 +41,7 @@ def add_ramps(half_ramp_samples,orig_signal):
 
     return(sig_w_ramp)
 
-def get_freq_response(input_signal,rec_signal,ir_length,exp_delaysamples):
+def get_freq_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
     input_sig_flat = np.ndarray.flatten(input_signal)
     rec_sig_flat = np.ndarray.flatten(rec_signal[exp_delaysamples:])
@@ -49,19 +49,22 @@ def get_freq_response(input_signal,rec_signal,ir_length,exp_delaysamples):
 
     max_corr = np.argmax(abs(cross_cor))
 
-    extract_crosscor = cross_cor[max_corr-ir_length:max_corr+ir_length]
+    # choose the cross corr along a particular window size
+    impulse_resp = cross_cor[max_corr-ir_length:max_corr+ir_length]
+    impulse_resp_fft = spyfft.rfft(impulse_resp)
+    ir_freqdBs = 20*np.log10(abs(impulse_resp_fft))
+    ir_freqs = np.linspace(0,FS/2,ir_length*2)
 
 
-
-
-    return(extract_crosscor)
+    return(ir_freqs, ir_freqdBs)
 
 
 
 durn_pbk = 2.0
 FS = 192000
+numramp_samples = 0.1*FS
 
-pbk_sig =  add_ramps(1000,gen_white_noise(int(durn_pbk*FS),0,0.1))
+pbk_sig =  add_ramps( numramp_samples ,gen_white_noise(int(durn_pbk*FS),0,0.1))
 
 rec_sound = sd.playrec(pbk_sig,FS,1,dtype='float')
 sd.wait()
@@ -76,8 +79,8 @@ def lowessmaker(data):
 #plt.plot(freqs,freq_dB,'r*')
 #plt.plot(sm_freqs[:,0],sm_freqs[:,1],'green')
 
-ccor = get_freq_response(pbk_sig,rec_sound,1024,0)
-fft_res = spyfft.rfft(ccor)
-plt.plot(np.linspace(0,FS/2,2048),20*np.log10(abs(fft_res)))
-
+ir_f,ir_f_dB = get_freq_response(pbk_sig,rec_sound,1024,FS,0)
+#fft_res = spyfft.rfft(ccor)
+#plt.plot(np.linspace(0,FS/2,2048),20*np.log10(abs(fft_res)))
+plt.plot(ir_f,ir_f_dB)
 
