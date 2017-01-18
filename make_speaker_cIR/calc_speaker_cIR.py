@@ -20,6 +20,7 @@ import scipy.fftpack as spyfft
 import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
 import scipy.signal as signal
+import statsmodels.nonparametric.smoothers_lowess as lw
 plt.rcParams['agg.path.chunksize'] = 10000
 
 ### generate noise signal :
@@ -59,7 +60,9 @@ def get_freq_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
     return( [impulse_resp,impulse_resp_fft, ir_freqs, ir_freqdBs])
 
-def calc_cIR(impulse_resp_fft,ir_length,lp_fraction,hp_fraction=1):
+
+
+def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction,hp_fraction=1):
     # create a Dirac pulse (which has aLL frequencies)
     dirac_pulse = np.zeros(ir_length)
     dirac_pulse[ir_length/2] = 1
@@ -81,33 +84,61 @@ def calc_cIR(impulse_resp_fft,ir_length,lp_fraction,hp_fraction=1):
     # calculate the iFFT to get a compensatory IR filter :
     cIR = spyfft.irfft(cIR_fft) # here HRG shifts array circularly ..why ?
 
-    return()
+    cIR_final = np.roll(cIR,ir_length/2)
+
+    return(cIR_final)
+
+flatten = np.ndarray.flatten
 
 
 
-
-
-
-durn_pbk = 2.0
-FS = 192000
+durn_pbk = 3.0
+FS = 44100
 numramp_samples = 0.1*FS
 
 pbk_sig =  add_ramps( numramp_samples ,gen_white_noise(int(durn_pbk*FS),0,0.1))
 
+print('raw sound being played now...')
 rec_sound = sd.playrec(pbk_sig,FS,1,dtype='float')
 sd.wait()
 
-
-import statsmodels.nonparametric.smoothers_lowess as lw
-def lowessmaker(data):
-    smoothed_data=lw.lowess(data,range(data.shape[0]),frac=0.005)
-    return(smoothed_data)
-
-#sm_freqs = lw.lowess(np.ndarray.flatten(freq_dB),freqs,delta=100)
-#plt.plot(freqs,freq_dB,'r*')
-#plt.plot(sm_freqs[:,0],sm_freqs[:,1],'green')
-
 irparams = get_freq_response(pbk_sig,rec_sound,1024,FS,0)
+cir = calc_cIR(irparams[0],irparams[1],1024*2,0.1)
+
+corrected_sig = np.convolve(pbk_sig,cir)
+
+print('corrected_sound being played now...')
+amp_dB = 20*np.log10(np.std(pbk_sig)/np.std(corrected_sig))  # in dB
+amp_factor = 10**(amp_dB/20.0)
+
+rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,1,dtype='float')
+sd.wait()
+#plt.plot(cir)
+
+plt.figure(3)
+
+plt.subplot(411)
+plt.plot(pbk_sig)
+plt.title('original playback signal')
+
+plt.subplot(412)
+orig_fft = spyfft.rfft(pbk_sig)
+num_freqs= np.linspace(0,FS/2,orig_fft.size)
+plt.plot(num_freqs,20*np.log10(abs(orig_fft)))
+plt.title('FFT original playback signal')
+
+plt.subplot(413)
+plt.plot(corrected_sig)
+plt.title('cIR X original sound recorded sound')
+
+
+plt.subplot(414)
+crct_sig_fft = spyfft.rfft(corrected_sound)
+num_freqs_crct= np.linspace(0,FS/2,crct_sig_fft.size)
+plt.plot(num_freqs_crct,20*np.log10(abs(crct_sig_fft)))
+plt.title('FFT: with cIR recorded sound')
+
+
 #fft_res = spyfft.rfft(ccor)
 #plt.plot(np.linspace(0,FS/2,2048),20*np.log10(abs(fft_res)))
 
