@@ -18,7 +18,7 @@ import sounddevice as sd
 import matplotlib.pyplot as plt
 import scipy.fftpack as spyfft
 import matplotlib.pyplot as plt
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import interp1d
 import scipy.signal as signal
 import statsmodels.nonparametric.smoothers_lowess as lw
 plt.rcParams['agg.path.chunksize'] = 10000
@@ -90,10 +90,17 @@ def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction,hp_fraction=1):
 
 flatten = np.ndarray.flatten
 
+def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
+
+    interp_power_spectrum= interp1d(flatten(fft_freqs), flatten( 20*np.log10(abs(fft_var)) ),kind = interp_type )
+    return(interp_power_spectrum(new_freqs))
 
 
-durn_pbk = 3.0
-FS = 44100
+
+
+
+durn_pbk = 2.0
+FS = 80000
 numramp_samples = 0.1*FS
 
 pbk_sig =  add_ramps( numramp_samples ,gen_white_noise(int(durn_pbk*FS),0,0.1))
@@ -103,7 +110,7 @@ rec_sound = sd.playrec(pbk_sig,FS,1,dtype='float')
 sd.wait()
 
 irparams = get_freq_response(pbk_sig,rec_sound,1024,FS,0)
-cir = calc_cIR(irparams[0],irparams[1],1024*2,0.1)
+cir = calc_cIR(irparams[0],irparams[1],1024*2,0.2)
 
 corrected_sig = np.convolve(pbk_sig,cir)
 
@@ -115,29 +122,38 @@ rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,1,dtype='float')
 sd.wait()
 #plt.plot(cir)
 
+smoothing_freqs = np.linspace(0,FS/2,50)
+
+
 plt.figure(3)
 
 plt.subplot(411)
-plt.plot(pbk_sig)
-plt.title('original playback signal')
+plt.plot(rec_sound)
+plt.title('original recorded signal')
 
 plt.subplot(412)
-orig_fft = spyfft.rfft(pbk_sig)
+orig_fft = spyfft.rfft(rec_sound)
 num_freqs= np.linspace(0,FS/2,orig_fft.size)
 plt.plot(num_freqs,20*np.log10(abs(orig_fft)))
-plt.title('FFT original playback signal')
+plt.title('FFT original recorded sound')
+
+sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft)
+plt.plot(smoothing_freqs,sm_fft_orig)
+
 
 plt.subplot(413)
-plt.plot(corrected_sig)
+plt.plot(rec_corrected_sound)
 plt.title('cIR X original sound recorded sound')
 
 
 plt.subplot(414)
-crct_sig_fft = spyfft.rfft(corrected_sound)
+crct_sig_fft = spyfft.rfft(rec_corrected_sound)
 num_freqs_crct= np.linspace(0,FS/2,crct_sig_fft.size)
 plt.plot(num_freqs_crct,20*np.log10(abs(crct_sig_fft)))
 plt.title('FFT: with cIR recorded sound')
 
+sm_fft= oned_fft_interp(smoothing_freqs,num_freqs_crct,crct_sig_fft)
+plt.plot(smoothing_freqs,sm_fft)
 
 #fft_res = spyfft.rfft(ccor)
 #plt.plot(np.linspace(0,FS/2,2048),20*np.log10(abs(fft_res)))
