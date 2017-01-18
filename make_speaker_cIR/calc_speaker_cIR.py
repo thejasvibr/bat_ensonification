@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import scipy.fftpack as spyfft
 import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
+import scipy.signal as signal
 plt.rcParams['agg.path.chunksize'] = 10000
 
 ### generate noise signal :
@@ -56,7 +57,34 @@ def get_freq_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
     ir_freqs = np.linspace(0,FS/2,ir_length*2)
 
 
-    return(ir_freqs, ir_freqdBs)
+    return( [impulse_resp,impulse_resp_fft, ir_freqs, ir_freqdBs])
+
+def calc_cIR(impulse_resp_fft,ir_length,lp_fraction,hp_fraction=1):
+    # create a Dirac pulse (which has aLL frequencies)
+    dirac_pulse = np.zeros(ir_length)
+    dirac_pulse[ir_length/2] = 1
+
+    a,b = signal.butter(8,[lp_fraction,hp_fraction],btype='bandpass')
+
+    # filter the frequencies for the dirac pulse and the recorded IR:
+    dirac_pulse_filtered = signal.lfilter(a,b,dirac_pulse)
+    impulse_response_filtered = signal.lfilter(a,b,impulse_resp)
+
+    # calculate the fft's of both signals :
+    filt_dpulse_fft = spyfft.rfft(dirac_pulse_filtered)
+    filt_iresp_fft = spyfft.rfft(impulse_response_filtered)
+
+    # now divide the all frequency signal w the some-frequency signal :
+    # to get the cIR :
+    cIR_fft = filt_dpulse_fft / filt_iresp_fft
+
+    # calculate the iFFT to get a compensatory IR filter :
+    cIR = spyfft.irfft(cIR_fft) # here HRG shifts array circularly ..why ?
+
+    return()
+
+
+
 
 
 
@@ -79,8 +107,8 @@ def lowessmaker(data):
 #plt.plot(freqs,freq_dB,'r*')
 #plt.plot(sm_freqs[:,0],sm_freqs[:,1],'green')
 
-ir_f,ir_f_dB = get_freq_response(pbk_sig,rec_sound,1024,FS,0)
+irparams = get_freq_response(pbk_sig,rec_sound,1024,FS,0)
 #fft_res = spyfft.rfft(ccor)
 #plt.plot(np.linspace(0,FS/2,2048),20*np.log10(abs(fft_res)))
-plt.plot(ir_f,ir_f_dB)
+
 
