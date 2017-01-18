@@ -67,11 +67,11 @@ def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction):
     dirac_pulse = np.zeros(ir_length)
     dirac_pulse[ir_length/2] = 1
 
-    a,b = signal.butter(8,lp_fraction,btype='highpass')
+    b,a = signal.butter(4,lp_fraction,btype='highpass')
 
     # filter the frequencies for the dirac pulse and the recorded IR:
-    dirac_pulse_filtered = signal.lfilter(a,b,dirac_pulse)
-    impulse_response_filtered = signal.lfilter(a,b,impulse_resp)
+    dirac_pulse_filtered = signal.lfilter(b,a,dirac_pulse)
+    impulse_response_filtered = signal.lfilter(b,a,impulse_resp)
 
     # calculate the fft's of both signals :
     filt_dpulse_fft = spyfft.rfft(dirac_pulse_filtered)
@@ -99,12 +99,13 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 
 
 
-durn_pbk = 1.0
+durn_pbk = 1.5
 FS = 192000
 numramp_samples = 0.1*FS
-mic_speaker_dist = 1.0 # in meters
+mic_speaker_dist = 1.2 # in meters
 vsound = 330 # in meters/sec
 delay_time = mic_speaker_dist/vsound
+
 
 pbk_sig =  add_ramps( numramp_samples ,gen_white_noise(int(durn_pbk*FS),0,0.1))
 
@@ -116,12 +117,13 @@ print('signal processing happening now...')
 
 delay_samples = int(delay_time *FS)
 irparams = get_impulse_response(pbk_sig,rec_sound,1024,FS,delay_samples)
-cir = calc_cIR(irparams[0],irparams[1],1024*2,0.2)
+
+cir = calc_cIR(irparams[0],irparams[1],1024*2,0.01)
 
 corrected_sig = np.convolve(pbk_sig,cir)
 
 print('corrected_sound being played now...')
-amp_dB = 20*np.log10(np.std(pbk_sig)/np.std(corrected_sig))  # in dB
+amp_dB = -( 20*np.log10(np.std(corrected_sig)) - 20*np.log10(np.std(pbk_sig)) )   # in dB
 
 amp_factor = 10**(amp_dB/20.0)
 
@@ -129,7 +131,7 @@ rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,output_mapping=[1],
 sd.wait()
 #plt.plot(cir)
 
-smoothing_freqs = np.linspace(0,FS/2,1000)
+smoothing_freqs = np.linspace(0,FS/2,50)
 
 
 plt.figure(3)
@@ -164,9 +166,9 @@ plt.plot(smoothing_freqs,sm_fft)
 
 plt.figure(4)
 sm_fft= oned_fft_interp(smoothing_freqs,num_freqs_crct,crct_sig_fft)
-plt.plot(smoothing_freqs,sm_fft,'r')
+plt.plot(smoothing_freqs,sm_fft-np.max(sm_fft),'r')
 sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft)
-plt.plot(smoothing_freqs,sm_fft_orig,'g')
+plt.plot(smoothing_freqs,sm_fft_orig-np.max(sm_fft_orig),'g')
 
 
 #fft_res = spyfft.rfft(ccor)
