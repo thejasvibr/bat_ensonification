@@ -43,7 +43,7 @@ def add_ramps(half_ramp_samples,orig_signal):
 
     return(sig_w_ramp)
 
-def get_freq_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
+def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
     input_sig_flat = np.ndarray.flatten(input_signal)
     rec_sig_flat = np.ndarray.flatten(rec_signal[exp_delaysamples:])
@@ -100,39 +100,46 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 
 
 durn_pbk = 2.0
-FS = 80000
+FS = 192000
 numramp_samples = 0.1*FS
+mic_speaker_dist = 1.0 # in meters
+vsound = 330 # in meters/sec
+delay_time = mic_speaker_dist/vsound
 
 pbk_sig =  add_ramps( numramp_samples ,gen_white_noise(int(durn_pbk*FS),0,0.1))
 
 print('raw sound being played now...')
-rec_sound = sd.playrec(pbk_sig,FS,1,dtype='float')
+rec_sound = sd.playrec(pbk_sig,FS,dtype='float',output_mapping=[1],input_mapping=[1],device=40)
 sd.wait()
 
-irparams = get_freq_response(pbk_sig,rec_sound,1024,FS,0)
+print('signal processing happening now...')
+
+delay_samples = int(delay_time *FS)
+irparams = get_impulse_response(pbk_sig,rec_sound,1024,FS,delay_samples)
 cir = calc_cIR(irparams[0],irparams[1],1024*2,0.2)
 
 corrected_sig = np.convolve(pbk_sig,cir)
 
 print('corrected_sound being played now...')
 amp_dB = 20*np.log10(np.std(pbk_sig)/np.std(corrected_sig))  # in dB
+
 amp_factor = 10**(amp_dB/20.0)
 
-rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,1,dtype='float')
+rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,output_mapping=[1],input_mapping=[1],dtype='float',device=40)
 sd.wait()
 #plt.plot(cir)
 
-smoothing_freqs = np.linspace(0,FS/2,50)
+smoothing_freqs = np.linspace(0,FS/2,100)
 
 
 plt.figure(3)
 
 plt.subplot(411)
-plt.plot(rec_sound)
+plt.plot(rec_sound[delay_samples:])
 plt.title('original recorded signal')
 
 plt.subplot(412)
-orig_fft = spyfft.rfft(rec_sound)
+orig_fft = spyfft.rfft(rec_sound[delay_samples])
 num_freqs= np.linspace(0,FS/2,orig_fft.size)
 plt.plot(num_freqs,20*np.log10(abs(orig_fft)))
 plt.title('FFT original recorded sound')
