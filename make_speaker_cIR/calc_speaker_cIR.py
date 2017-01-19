@@ -124,7 +124,7 @@ cir = calc_cIR(irparams[0],irparams[1],1024*2,0.01)
 
 print('signal being convolved with cIR now ')
 # SHOULD I CONVOLVE WITH THE 'SAME' option ....?
-corrected_sig = np.convolve(pbk_sig,cir)
+corrected_sig = np.convolve(pbk_sig,np.flipud(cir))
 
 print('corrected_sound being played now...')
 amp_dB = -( 20*np.log10(np.std(corrected_sig)) - 20*np.log10(np.std(pbk_sig)) )   # in dB
