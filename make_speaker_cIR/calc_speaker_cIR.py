@@ -48,7 +48,7 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
     input_sig_flat = np.ndarray.flatten(input_signal)
     rec_sig_flat = np.ndarray.flatten(rec_signal[exp_delaysamples:])
-    cross_cor = np.convolve( rec_sig_flat, input_sig_flat)
+    cross_cor = np.convolve( rec_sig_flat, np.flipud(input_sig_flat))
 
     max_corr = np.argmax(abs(cross_cor))
 
@@ -66,7 +66,7 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction):
     # create a Dirac pulse (which has aLL frequencies)
     dirac_pulse = np.zeros(ir_length)
-    dirac_pulse[ir_length/2] = 1
+    dirac_pulse[ir_length/2 -1] = 1
 
     b,a = signal.butter(4,lp_fraction,btype='highpass')
 
@@ -74,7 +74,7 @@ def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction):
     dirac_pulse_filtered = signal.lfilter(b,a,dirac_pulse)
     impulse_response_filtered = signal.lfilter(b,a,impulse_resp)
 
-    # calculate the fft's of both signals :
+    # calculate the fft's of both filtered signals :
     filt_dpulse_fft = spyfft.fft(dirac_pulse_filtered)
     filt_iresp_fft = spyfft.fft(impulse_response_filtered)
 
@@ -100,28 +100,43 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 
 
 
-durn_pbk = 2.0
-FS = 50000
+durn_pbk = 0.5
+FS = 192000
 numramp_samples = 0.1*FS
-mic_speaker_dist = 0.3 # in meters
+mic_speaker_dist = 3 # in meters
 vsound = 330 # in meters/sec
 delay_time = mic_speaker_dist/vsound
-ir_length =2048
+ir_length = 2048
 
-pbk_sig =  add_ramps( numramp_samples ,gen_gaussian_noise(int(durn_pbk*FS),0,0.1))
+total_num_samples = int(durn_pbk*FS)
+
+gaussian_noise = gen_gaussian_noise(total_num_samples,0,0.1)
+
+# trigger spike to get the playback delay :
+trigger_sig = np.zeros(total_num_samples)
+trigger_sig [0] = 0.8
+
+
+
+pbk_sig =  add_ramps( numramp_samples ,gaussian_noise )
+
+final_pbk = np.column_stack((trigger_sig,pbk_sig ))
 
 print('raw sound being played now...')
-rec_sound = sd.playrec(pbk_sig,FS,channels = 1 ,dtype='float')
+rec_sound = sd.playrec(final_pbk,FS,input_mapping=[2,11],output_mapping=[2,1] ,dtype='float',device = 40)
 sd.wait()
 
 print('signal processing happening now...')
 
 delay_samples = int(delay_time *FS)
-irparams = get_impulse_response(pbk_sig,rec_sound,ir_length,FS,delay_samples)
+
+intfc_pbk_delay = np.argmax(rec_sound[:,0]) # audio interface playback delay
+
+irparams = get_impulse_response(pbk_sig,rec_sound[intfc_pbk_delay:,1],ir_length,FS,delay_samples)
 
 print('impulse and frequency response being calculated now...')
 
-cir = calc_cIR(irparams[0],irparams[1],ir_length*2,0.01)
+cir = calc_cIR(irparams[0],irparams[1],ir_length*2,0.1)
 
 print('signal being convolved with cIR now ')
 # SHOULD I CONVOLVE WITH THE 'SAME' option ....?
@@ -132,12 +147,14 @@ amp_dB = -( 20*np.log10(np.std(corrected_sig)) - 20*np.log10(np.std(pbk_sig)) ) 
 
 amp_factor = 10**(amp_dB/20.0)
 
-rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,channels = 1 ,dtype='float')
+rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,input_mapping=[11],output_mapping=[1] ,dtype='float',device = 40)
 sd.wait()
-#plt.plot(cir)
+
+plt.figure(1)
+plt.plot(cir)
 
 # smoothing over a Kilohertz range
-min_plot_freq = 10000
+min_plot_freq = 20000
 max_plot_freq = int(FS/2)
 freq_range = max_plot_freq - min_plot_freq
 smoothing_freqs = np.linspace(min_plot_freq,max_plot_freq,freq_range/1000)
