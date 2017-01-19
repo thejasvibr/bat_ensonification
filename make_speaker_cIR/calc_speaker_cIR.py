@@ -136,7 +136,11 @@ rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,channels = 1 ,dtype
 sd.wait()
 #plt.plot(cir)
 
-smoothing_freqs = np.linspace(0,FS/2,200)
+# smoothing over a Kilohertz range
+min_plot_freq = 10000
+max_plot_freq = int(FS/2)
+freq_range = max_plot_freq - min_plot_freq
+smoothing_freqs = np.linspace(min_plot_freq,max_plot_freq,freq_range/1000)
 
 
 plt.figure(3)
