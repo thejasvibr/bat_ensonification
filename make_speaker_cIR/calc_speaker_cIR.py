@@ -9,6 +9,7 @@ User records sound from a flat-response microphone
 like a GRAS 1/4th inch and as output the compensatory
 IR of the particular speaker is generated
 
+based on cIR script written by Holger R Goerlitz
 
 @author: tbeleyur
 """
@@ -74,15 +75,15 @@ def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction):
     impulse_response_filtered = signal.lfilter(b,a,impulse_resp)
 
     # calculate the fft's of both signals :
-    filt_dpulse_fft = spyfft.rfft(dirac_pulse_filtered)
-    filt_iresp_fft = spyfft.rfft(impulse_response_filtered)
+    filt_dpulse_fft = spyfft.fft(dirac_pulse_filtered)
+    filt_iresp_fft = spyfft.fft(impulse_response_filtered)
 
     # now divide the all frequency signal w the some-frequency signal :
     # to get the cIR :
     cIR_fft = filt_dpulse_fft / filt_iresp_fft
 
     # calculate the iFFT to get a compensatory IR filter :
-    cIR = spyfft.irfft(cIR_fft) # here HRG shifts array circularly ..why ?
+    cIR = spyfft.ifft(cIR_fft).real # here HRG shifts array circularly ..why ?
 
     cIR_final = np.roll(cIR,ir_length/2)
 
@@ -102,7 +103,7 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 durn_pbk = 1.5
 FS = 192000
 numramp_samples = 0.1*FS
-mic_speaker_dist = 1.2 # in meters
+mic_speaker_dist = 0.3 # in meters
 vsound = 330 # in meters/sec
 delay_time = mic_speaker_dist/vsound
 
@@ -110,7 +111,7 @@ delay_time = mic_speaker_dist/vsound
 pbk_sig =  add_ramps( numramp_samples ,gen_gaussian_noise(int(durn_pbk*FS),0,0.1))
 
 print('raw sound being played now...')
-rec_sound = sd.playrec(pbk_sig,FS,dtype='float',output_mapping=[1],input_mapping=[12],device=40)
+rec_sound = sd.playrec(pbk_sig,FS,channels = 1 ,dtype='float')
 sd.wait()
 
 print('signal processing happening now...')
@@ -131,7 +132,7 @@ amp_dB = -( 20*np.log10(np.std(corrected_sig)) - 20*np.log10(np.std(pbk_sig)) ) 
 
 amp_factor = 10**(amp_dB/20.0)
 
-rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,output_mapping=[1],input_mapping=[12],dtype='float',device=40)
+rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,channels = 1 ,dtype='float')
 sd.wait()
 #plt.plot(cir)
 
