@@ -100,13 +100,13 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 
 
 
-durn_pbk = 1.5
-FS = 192000
+durn_pbk = 2.0
+FS = 50000
 numramp_samples = 0.1*FS
 mic_speaker_dist = 0.3 # in meters
 vsound = 330 # in meters/sec
 delay_time = mic_speaker_dist/vsound
-
+ir_length =2048
 
 pbk_sig =  add_ramps( numramp_samples ,gen_gaussian_noise(int(durn_pbk*FS),0,0.1))
 
@@ -117,11 +117,11 @@ sd.wait()
 print('signal processing happening now...')
 
 delay_samples = int(delay_time *FS)
-irparams = get_impulse_response(pbk_sig,rec_sound,1024,FS,delay_samples)
+irparams = get_impulse_response(pbk_sig,rec_sound,ir_length,FS,delay_samples)
 
 print('impulse and frequency response being calculated now...')
 
-cir = calc_cIR(irparams[0],irparams[1],1024*2,0.01)
+cir = calc_cIR(irparams[0],irparams[1],ir_length*2,0.01)
 
 print('signal being convolved with cIR now ')
 # SHOULD I CONVOLVE WITH THE 'SAME' option ....?
@@ -136,7 +136,7 @@ rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,channels = 1 ,dtype
 sd.wait()
 #plt.plot(cir)
 
-smoothing_freqs = np.linspace(0,FS/2,50)
+smoothing_freqs = np.linspace(0,FS/2,200)
 
 
 plt.figure(3)
@@ -150,6 +150,7 @@ orig_fft = spyfft.rfft(rec_sound[delay_samples:])
 num_freqs= np.linspace(0,FS/2,orig_fft.size)
 plt.plot(num_freqs,20*np.log10(abs(orig_fft)))
 plt.title('FFT original recorded sound')
+plt.ylim(-80,0)
 
 sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft)
 plt.plot(smoothing_freqs,sm_fft_orig)
@@ -165,6 +166,7 @@ crct_sig_fft = spyfft.rfft(rec_corrected_sound[delay_samples:])
 num_freqs_crct= np.linspace(0,FS/2,crct_sig_fft.size)
 plt.plot(num_freqs_crct,20*np.log10(abs(crct_sig_fft)))
 plt.title('FFT: with cIR recorded sound')
+plt.ylim(-80,0)
 
 sm_fft= oned_fft_interp(smoothing_freqs,num_freqs_crct,crct_sig_fft)
 plt.plot(smoothing_freqs,sm_fft)
