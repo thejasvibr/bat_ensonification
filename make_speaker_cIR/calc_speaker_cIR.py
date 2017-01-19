@@ -25,11 +25,11 @@ plt.rcParams['agg.path.chunksize'] = 10000
 
 ### generate noise signal :
 
-def gen_white_noise(num_samples,mean,sdev):
+def gen_gaussian_noise(num_samples,mean,sdev):
     # generates gaussian distribution of sample values
 
-    white_noise = np.random.normal(mean,sdev,num_samples)
-    return(white_noise)
+    gaussian_noise = np.random.normal(mean,sdev,num_samples)
+    return(gaussian_noise)
 
 def add_ramps(half_ramp_samples,orig_signal):
     # adds up and down ramps to the original signal
@@ -88,7 +88,7 @@ def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction):
 
     return(cIR_final)
 
-flatten = np.ndarray.flatten
+flatten = np.ndarray.flatten # one line function assignment
 
 def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 
@@ -107,7 +107,7 @@ vsound = 330 # in meters/sec
 delay_time = mic_speaker_dist/vsound
 
 
-pbk_sig =  add_ramps( numramp_samples ,gen_white_noise(int(durn_pbk*FS),0,0.1))
+pbk_sig =  add_ramps( numramp_samples ,gen_gaussian_noise(int(durn_pbk*FS),0,0.1))
 
 print('raw sound being played now...')
 rec_sound = sd.playrec(pbk_sig,FS,dtype='float',output_mapping=[1],input_mapping=[12],device=40)
@@ -118,8 +118,12 @@ print('signal processing happening now...')
 delay_samples = int(delay_time *FS)
 irparams = get_impulse_response(pbk_sig,rec_sound,1024,FS,delay_samples)
 
+print('impulse and frequency response being calculated now...')
+
 cir = calc_cIR(irparams[0],irparams[1],1024*2,0.01)
 
+print('signal being convolved with cIR now ')
+# SHOULD I CONVOLVE WITH THE 'SAME' option ....?
 corrected_sig = np.convolve(pbk_sig,cir)
 
 print('corrected_sound being played now...')
