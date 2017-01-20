@@ -62,19 +62,17 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
     input_sig_flat = np.ndarray.flatten(input_signal)
     rec_sig_flat = np.ndarray.flatten(rec_signal[exp_delaysamples:])
-    cross_cor = signal.correlate( input_sig_flat, rec_sig_flat, 'same')
+
+    print('signals being cross-correlated')
+    cross_cor = np.correlate( input_sig_flat, rec_sig_flat, 'same')
 
     # get the index of maximum correlation to align the impulse response properly
     max_corr = input_sig_flat.size/2 - np.argmax(abs(cross_cor))
 
     # choose the cross corr along a particular window size
     impulse_resp = cross_cor[max_corr-int(ir_length/2) :max_corr+ int(ir_length/2)]
-    impulse_resp_fft = spyfft.fft(impulse_resp)
-    ir_freqdBs = 20*np.log10(abs(impulse_resp_fft))
-    ir_freqs = np.linspace(0,FS/2,ir_length)
 
-
-    return( [impulse_resp,impulse_resp_fft, ir_freqs, ir_freqdBs])
+    return( [impulse_resp])
 
 
 
@@ -88,7 +86,7 @@ def calc_cIR(impulse_resp,ir_length,ba_list):
     # filter the frequencies for the dirac pulse and the recorded IR:
     dirac_pulse_filtered = signal.lfilter(b,a,dirac_pulse)
 
-
+    print('FFTs being calculated...')
     # calculate the fft's of both filtered signals :
     filt_dpulse_fft = spyfft.fft(dirac_pulse_filtered)
     filt_iresp_fft = spyfft.fft(impulse_resp)
@@ -115,7 +113,7 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 
 
 
-durn_pbk = 3
+durn_pbk = 1.5
 FS = 192000
 numramp_samples = 0.1*FS
 mic_speaker_dist = 3.0 # in meters
@@ -125,7 +123,7 @@ ir_length = 4096
 input_channels = [2,11]
 output_channels = [2,1]
 total_num_samples = int(durn_pbk*FS)
-highpass_frequency = 15000
+highpass_frequency = 15000.0
 nyquist_freq = FS/2
 #### generate playbacks :
 
