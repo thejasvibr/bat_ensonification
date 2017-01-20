@@ -26,6 +26,7 @@ import scipy.fftpack as spyfft
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import scipy.signal as signal
+from scipy.interpolate import InterpolatedUnivariateSpline
 plt.rcParams['agg.path.chunksize'] = 10000
 
 np.random.seed(612) # to recreate the same playback signals at any point of time.
@@ -104,10 +105,17 @@ def calc_cIR(impulse_resp,ir_length,ba_list):
 
 flatten = np.ndarray.flatten # one line function assignment
 
-def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
+def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear',kvalue=3):
 
-    interp_power_spectrum= interp1d(flatten(fft_freqs), flatten( 20*np.log10(abs(fft_var)) ),kind = interp_type )
-    return(interp_power_spectrum(new_freqs))
+
+
+    if interp_type =='cubic':
+        interp_spline = InterpolatedUnivariateSpline(flatten(fft_freqs),flatten( 20*np.log10(abs(fft_var))),k=kvalue)
+        interp_power_spectrum = flatten(interp_spline(new_freqs))
+        return(interp_power_spectrum)
+    else:
+        interp_power_spectrum= interp1d(flatten(fft_freqs), flatten( 20*np.log10(abs(fft_var)) ),kind = interp_type )
+        return(interp_power_spectrum(new_freqs))
 
 
 
@@ -116,18 +124,18 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 durn_pbk = 1.5
 FS = 192000
 numramp_samples = 0.1*FS
-mic_speaker_dist = 3.0 # in meters
+mic_speaker_dist = 3 # in meters
 vsound = 330 # in meters/sec
 delay_time = float(mic_speaker_dist/vsound)
 ir_length = 4096
-input_channels = [2,11]
+input_channels = [2,9]
 output_channels = [2,1]
 total_num_samples = int(durn_pbk*FS)
-highpass_frequency = 15000.0
+highpass_frequency = 10000.0
 nyquist_freq = FS/2
 #### generate playbacks :
 
-gaussian_noise = gen_gaussian_noise(total_num_samples,0,0.1)
+gaussian_noise = gen_gaussian_noise(total_num_samples,0,0.2)
 filt_gaussian_noise,ba_list = filter_signal(gaussian_noise, 4, highpass_frequency/nyquist_freq,'highpass')
 
 # trigger spike to get the playback delay :
@@ -160,27 +168,31 @@ print('signal being convolved with cIR now ')
 
 corrected_sig = signal.lfilter(cir,1,pbk_sig)
 
+corrected_hp_sig = signal.lfilter(ba_list[0],ba_list[1],corrected_sig)
+
 print('corrected_sound being played now...')
-amp_dB = -( 20*np.log10(np.std(corrected_sig)) - 20*np.log10(np.std(pbk_sig)) )   # in dB
+amp_dB = -( 20*np.log10(np.std(corrected_hp_sig)) - 20*np.log10(np.std(pbk_sig)) )   # in dB
 
 amp_factor = 10**(amp_dB/20.0)
 
 # amplified corrected signal
-amped_corr_sig = amp_factor*corrected_sig
+amped_corr_sig = amp_factor*corrected_hp_sig
 
 corrected_pbk = np.column_stack((trigger_sig, amped_corr_sig ))
 
 rec_corrected_sound = sd.playrec(corrected_pbk,FS,input_mapping=input_channels,output_mapping=output_channels ,dtype='float',device = 40)
 sd.wait()
 
+print('plotting taking place...')
+
 plt.figure(1)
 plt.plot(cir)
 
 # smoothing over a Kilohertz range
-min_plot_freq = 20000
+min_plot_freq = highpass_frequency
 max_plot_freq = int(FS/2)
 freq_range = max_plot_freq - min_plot_freq
-smoothing_freqs = np.linspace(min_plot_freq,max_plot_freq,freq_range/1000)
+smoothing_freqs = np.linspace(min_plot_freq,max_plot_freq,freq_range/500)
 
 
 plt.figure(3)
@@ -194,9 +206,9 @@ orig_fft = spyfft.rfft(rec_sound[delay_samples:,1])
 num_freqs= np.linspace(0,FS/2,orig_fft.size)
 plt.plot(num_freqs,20*np.log10(abs(orig_fft)))
 plt.title('FFT original recorded sound')
-plt.ylim(-80,0)
+plt.ylim(-80,30)
 
-sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft)
+sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft,'cubic')
 plt.plot(smoothing_freqs,sm_fft_orig)
 
 
@@ -210,15 +222,15 @@ crct_sig_fft = spyfft.rfft(rec_corrected_sound[delay_samples:,1])
 num_freqs_crct= np.linspace(0,FS/2,crct_sig_fft.size)
 plt.plot(num_freqs_crct,20*np.log10(abs(crct_sig_fft)))
 plt.title('FFT: with cIR recorded sound')
-plt.ylim(-80,0)
+plt.ylim(-80,30)
 
-sm_fft= oned_fft_interp(smoothing_freqs,num_freqs_crct,crct_sig_fft)
+sm_fft= oned_fft_interp(smoothing_freqs,num_freqs_crct,crct_sig_fft,'cubic')
 plt.plot(smoothing_freqs,sm_fft)
 
 plt.figure(4)
 sm_fft= oned_fft_interp(smoothing_freqs,num_freqs_crct,crct_sig_fft)
 plt.plot(smoothing_freqs,sm_fft-np.max(sm_fft),'r')
-sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft)
+sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft,'cubic')
 plt.plot(smoothing_freqs,sm_fft_orig-np.max(sm_fft_orig),'g')
 
 
