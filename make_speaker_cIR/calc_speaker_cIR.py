@@ -21,7 +21,6 @@ import scipy.fftpack as spyfft
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import scipy.signal as signal
-import statsmodels.nonparametric.smoothers_lowess as lw
 plt.rcParams['agg.path.chunksize'] = 10000
 
 ### generate noise signal :
@@ -118,6 +117,8 @@ ir_length = 2048
 
 total_num_samples = int(durn_pbk*FS)
 
+#### generate playbacks :
+
 gaussian_noise = gen_gaussian_noise(total_num_samples,0,0.1)
 filt_gaussian_noise = filter_signal(gaussian_noise, 16,0.2,'highpass')
 
@@ -148,8 +149,8 @@ print('impulse and frequency response being calculated now...')
 cir = calc_cIR(irparams[0],ir_length*2,0.1)
 
 print('signal being convolved with cIR now ')
-# SHOULD I CONVOLVE WITH THE 'SAME' option ....?
-corrected_sig = np.convolve(pbk_sig,np.flipud(cir))
+
+corrected_sig = signal.lfilter(cir,1,pbk_sig)
 
 print('corrected_sound being played now...')
 amp_dB = -( 20*np.log10(np.std(corrected_sig)) - 20*np.log10(np.std(pbk_sig)) )   # in dB
