@@ -32,6 +32,13 @@ def gen_gaussian_noise(num_samples,mean,sdev):
     gaussian_noise = np.random.normal(mean,sdev,num_samples)
     return(gaussian_noise)
 
+def filter_signal(input_signal,order,freq_fraction,filter_type):
+    # lowpass,highpass or bandpass es a signal with a butterworth of
+    # given order
+    b,a = signal.butter(order,freq_fraction,btype=filter_type)
+    filtered_signal = signal.lfilter(b,a,input_signal)
+    return(filtered_signal)
+
 def add_ramps(half_ramp_samples,orig_signal):
     # adds up and down ramps to the original signal
     full_window = np.hamming(2*half_ramp_samples)
