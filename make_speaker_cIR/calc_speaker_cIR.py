@@ -48,9 +48,10 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
     input_sig_flat = np.ndarray.flatten(input_signal)
     rec_sig_flat = np.ndarray.flatten(rec_signal[exp_delaysamples:])
-    cross_cor = np.convolve( rec_sig_flat, np.flipud(input_sig_flat))
+    cross_cor = signal.correlate( input_sig_flat, rec_sig_flat, 'same')
 
-    max_corr = np.argmax(abs(cross_cor))
+    # get the index of maximum correlation
+    max_corr = input_sig_flat.size/2 - np.argmax(abs(cross_cor))
 
     # choose the cross corr along a particular window size
     impulse_resp = cross_cor[max_corr-ir_length:max_corr+ir_length]
@@ -63,12 +64,12 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
 
 
-def calc_cIR(impulse_resp,impulse_resp_fft,ir_length,lp_fraction):
+def calc_cIR(impulse_resp,ir_length,lp_fraction):
     # create a Dirac pulse (which has aLL frequencies)
     dirac_pulse = np.zeros(ir_length)
     dirac_pulse[ir_length/2 -1] = 1
 
-    b,a = signal.butter(4,lp_fraction,btype='highpass')
+    b,a = signal.butter(16,lp_fraction,btype='highpass')
 
     # filter the frequencies for the dirac pulse and the recorded IR:
     dirac_pulse_filtered = signal.lfilter(b,a,dirac_pulse)
@@ -136,7 +137,7 @@ irparams = get_impulse_response(pbk_sig,rec_sound[intfc_pbk_delay:,1],ir_length,
 
 print('impulse and frequency response being calculated now...')
 
-cir = calc_cIR(irparams[0],irparams[1],ir_length*2,0.1)
+cir = calc_cIR(irparams[0],ir_length*2,0.1)
 
 print('signal being convolved with cIR now ')
 # SHOULD I CONVOLVE WITH THE 'SAME' option ....?
@@ -163,7 +164,7 @@ smoothing_freqs = np.linspace(min_plot_freq,max_plot_freq,freq_range/1000)
 plt.figure(3)
 
 plt.subplot(411)
-plt.plot(rec_sound[delay_samples:])
+plt.plot(rec_sound[intfc_pbk_delay:,1])
 plt.title('original recorded signal')
 
 plt.subplot(412)
