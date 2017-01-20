@@ -19,7 +19,7 @@ IR and cIR calculations based on the measIR MATLAB script written by Holger R Go
 
 @author: tbeleyur
 """
-
+import random
 import numpy as np
 import sounddevice as sd
 import matplotlib.pyplot as plt
@@ -28,6 +28,8 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import scipy.signal as signal
 plt.rcParams['agg.path.chunksize'] = 10000
+
+random.seed(612) # to recreate the same playback signals at any point of time.
 
 ### generate noise signal :
 
@@ -40,9 +42,10 @@ def gen_gaussian_noise(num_samples,mean,sdev):
 def filter_signal(input_signal,order,freq_fraction,filter_type):
     # lowpass,highpass or bandpass es a signal with a butterworth of
     # given order
+    # also returns b,a
     b,a = signal.butter(order,freq_fraction,btype=filter_type)
     filtered_signal = signal.lfilter(b,a,input_signal)
-    return(filtered_signal)
+    return(filtered_signal,[b,a])
 
 def add_ramps(half_ramp_samples,orig_signal):
     # adds up and down ramps to the original signal
@@ -62,34 +65,34 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
     rec_sig_flat = np.ndarray.flatten(rec_signal[exp_delaysamples:])
     cross_cor = signal.correlate( input_sig_flat, rec_sig_flat, 'same')
 
-    # get the index of maximum correlation
+    # get the index of maximum correlation to align the impulse response properly
     max_corr = input_sig_flat.size/2 - np.argmax(abs(cross_cor))
 
     # choose the cross corr along a particular window size
-    impulse_resp = cross_cor[max_corr-ir_length:max_corr+ir_length]
+    impulse_resp = cross_cor[max_corr-int(ir_length/2) :max_corr+ int(ir_length/2)]
     impulse_resp_fft = spyfft.fft(impulse_resp)
     ir_freqdBs = 20*np.log10(abs(impulse_resp_fft))
-    ir_freqs = np.linspace(0,FS/2,ir_length*2)
+    ir_freqs = np.linspace(0,FS/2,ir_length)
 
 
     return( [impulse_resp,impulse_resp_fft, ir_freqs, ir_freqdBs])
 
 
 
-def calc_cIR(impulse_resp,ir_length,lp_fraction):
+def calc_cIR(impulse_resp,ir_length,ba_list):
     # create a Dirac pulse (which has aLL frequencies)
     dirac_pulse = np.zeros(ir_length)
     dirac_pulse[ir_length/2 -1] = 1
 
-    b,a = signal.butter(16,lp_fraction,btype='highpass')
-
+    b = ba_list[0]
+    a = ba_list[1]
     # filter the frequencies for the dirac pulse and the recorded IR:
     dirac_pulse_filtered = signal.lfilter(b,a,dirac_pulse)
-    impulse_response_filtered = signal.lfilter(b,a,impulse_resp)
+
 
     # calculate the fft's of both filtered signals :
     filt_dpulse_fft = spyfft.fft(dirac_pulse_filtered)
-    filt_iresp_fft = spyfft.fft(impulse_response_filtered)
+    filt_iresp_fft = spyfft.fft(impulse_resp)
 
     # now divide the all frequency signal w the some-frequency signal :
     # to get the cIR :
@@ -98,7 +101,7 @@ def calc_cIR(impulse_resp,ir_length,lp_fraction):
     # calculate the iFFT to get a compensatory IR filter :
     cIR = spyfft.ifft(cIR_fft).real # here HRG shifts array circularly ..why ?
 
-    cIR_final = np.roll(cIR,ir_length/2)
+    cIR_final = np.roll(cIR,int(ir_length/2) )
 
     return(cIR_final)
 
@@ -113,21 +116,22 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear'):
 
 
 
-durn_pbk = 0.5
+durn_pbk = 3
 FS = 192000
 numramp_samples = 0.1*FS
-mic_speaker_dist = 3 # in meters
+mic_speaker_dist = 3.0 # in meters
 vsound = 330 # in meters/sec
-delay_time = mic_speaker_dist/vsound
-ir_length = 2048
+delay_time = float(mic_speaker_dist/vsound)
+ir_length = 4096
 input_channels = [2,11]
 output_channels = [2,1]
 total_num_samples = int(durn_pbk*FS)
-
+highpass_frequency = 15000
+nyquist_freq = FS/2
 #### generate playbacks :
 
 gaussian_noise = gen_gaussian_noise(total_num_samples,0,0.1)
-filt_gaussian_noise = filter_signal(gaussian_noise, 16,0.2,'highpass')
+filt_gaussian_noise,ba_list = filter_signal(gaussian_noise, 4, highpass_frequency/nyquist_freq,'highpass')
 
 # trigger spike to get the playback delay :
 trigger_sig = np.zeros(total_num_samples)
@@ -153,7 +157,7 @@ irparams = get_impulse_response(pbk_sig,rec_sound[intfc_pbk_delay:,1],ir_length,
 
 print('impulse and frequency response being calculated now...')
 
-cir = calc_cIR(irparams[0],ir_length*2,0.1)
+cir = calc_cIR(irparams[0],ir_length,ba_list)
 
 print('signal being convolved with cIR now ')
 
@@ -163,6 +167,8 @@ print('corrected_sound being played now...')
 amp_dB = -( 20*np.log10(np.std(corrected_sig)) - 20*np.log10(np.std(pbk_sig)) )   # in dB
 
 amp_factor = 10**(amp_dB/20.0)
+
+# amplified corrected signal
 amped_corr_sig = amp_factor*corrected_sig
 
 corrected_pbk = np.column_stack((trigger_sig, amped_corr_sig ))
@@ -187,7 +193,7 @@ plt.plot(rec_sound[intfc_pbk_delay:,1])
 plt.title('original recorded signal')
 
 plt.subplot(412)
-orig_fft = spyfft.rfft(rec_sound[delay_samples:])
+orig_fft = spyfft.rfft(rec_sound[delay_samples:,1])
 num_freqs= np.linspace(0,FS/2,orig_fft.size)
 plt.plot(num_freqs,20*np.log10(abs(orig_fft)))
 plt.title('FFT original recorded sound')
@@ -198,12 +204,12 @@ plt.plot(smoothing_freqs,sm_fft_orig)
 
 
 plt.subplot(413)
-plt.plot(rec_corrected_sound[delay_samples:])
+plt.plot(rec_corrected_sound[delay_samples:,1])
 plt.title('cIR X original sound recorded sound')
 
 
 plt.subplot(414)
-crct_sig_fft = spyfft.rfft(rec_corrected_sound[delay_samples:])
+crct_sig_fft = spyfft.rfft(rec_corrected_sound[delay_samples:,1])
 num_freqs_crct= np.linspace(0,FS/2,crct_sig_fft.size)
 plt.plot(num_freqs_crct,20*np.log10(abs(crct_sig_fft)))
 plt.title('FFT: with cIR recorded sound')
