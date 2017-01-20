@@ -19,7 +19,6 @@ IR and cIR calculations based on the measIR MATLAB script written by Holger R Go
 
 @author: tbeleyur
 """
-import random
 import numpy as np
 import sounddevice as sd
 import matplotlib.pyplot as plt
@@ -29,7 +28,7 @@ from scipy.interpolate import interp1d
 import scipy.signal as signal
 plt.rcParams['agg.path.chunksize'] = 10000
 
-random.seed(612) # to recreate the same playback signals at any point of time.
+np.random.seed(612) # to recreate the same playback signals at any point of time.
 
 ### generate noise signal :
 
