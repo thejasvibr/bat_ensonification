@@ -119,6 +119,7 @@ ir_length = 2048
 total_num_samples = int(durn_pbk*FS)
 
 gaussian_noise = gen_gaussian_noise(total_num_samples,0,0.1)
+filt_gaussian_noise = filter_signal(gaussian_noise, 16,0.2,'highpass')
 
 # trigger spike to get the playback delay :
 trigger_sig = np.zeros(total_num_samples)
@@ -126,7 +127,7 @@ trigger_sig [0] = 0.8
 
 
 
-pbk_sig =  add_ramps( numramp_samples ,gaussian_noise )
+pbk_sig =  add_ramps( numramp_samples ,filt_gaussian_noise )
 
 final_pbk = np.column_stack((trigger_sig,pbk_sig ))
 
