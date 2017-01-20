@@ -120,7 +120,8 @@ mic_speaker_dist = 3 # in meters
 vsound = 330 # in meters/sec
 delay_time = mic_speaker_dist/vsound
 ir_length = 2048
-
+input_channels = [2,11]
+output_channels = [2,1]
 total_num_samples = int(durn_pbk*FS)
 
 #### generate playbacks :
@@ -139,7 +140,7 @@ pbk_sig =  add_ramps( numramp_samples ,filt_gaussian_noise )
 final_pbk = np.column_stack((trigger_sig,pbk_sig ))
 
 print('raw sound being played now...')
-rec_sound = sd.playrec(final_pbk,FS,input_mapping=[2,11],output_mapping=[2,1] ,dtype='float',device = 40)
+rec_sound = sd.playrec(final_pbk,FS,input_mapping=input_channels,output_mapping=output_channels ,dtype='float',device = 40)
 sd.wait()
 
 print('signal processing happening now...')
@@ -162,8 +163,11 @@ print('corrected_sound being played now...')
 amp_dB = -( 20*np.log10(np.std(corrected_sig)) - 20*np.log10(np.std(pbk_sig)) )   # in dB
 
 amp_factor = 10**(amp_dB/20.0)
+amped_corr_sig = amp_factor*corrected_sig
 
-rec_corrected_sound = sd.playrec(amp_factor*corrected_sig,FS,input_mapping=[11],output_mapping=[1] ,dtype='float',device = 40)
+corrected_pbk = np.column_stack((trigger_sig, amped_corr_sig ))
+
+rec_corrected_sound = sd.playrec(corrected_pbk,FS,input_mapping=input_channels,output_mapping=output_channels ,dtype='float',device = 40)
 sd.wait()
 
 plt.figure(1)
