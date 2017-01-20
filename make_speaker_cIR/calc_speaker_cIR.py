@@ -9,7 +9,13 @@ User records sound from a flat-response microphone
 like a GRAS 1/4th inch and as output the compensatory
 IR of the particular speaker is generated
 
-based on cIR script written by Holger R Goerlitz
+
+Watch out for the speaker amplification settings while playing back noise signal
+Start with lowest amplification level and gently increase the playback volume
+based on the signal to noise ratio of the recordings got.
+
+
+IR and cIR calculations based on the measIR MATLAB script written by Holger R Goerlitz
 
 @author: tbeleyur
 """
@@ -61,7 +67,7 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
     # choose the cross corr along a particular window size
     impulse_resp = cross_cor[max_corr-ir_length:max_corr+ir_length]
-    impulse_resp_fft = spyfft.rfft(impulse_resp)
+    impulse_resp_fft = spyfft.fft(impulse_resp)
     ir_freqdBs = 20*np.log10(abs(impulse_resp_fft))
     ir_freqs = np.linspace(0,FS/2,ir_length*2)
 
