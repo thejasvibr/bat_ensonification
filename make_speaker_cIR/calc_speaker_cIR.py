@@ -80,7 +80,7 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
 
 
 
-def calc_cIR(impulse_resp,ir_length,ba_list,calc_option='fft_method'):
+def calc_cIR(impulse_resp,ir_length,ba_list):
     '''
     calculate the compensatory impulse response filter required to make a
     highpass filtered flat-frequency response.
@@ -90,7 +90,7 @@ def calc_cIR(impulse_resp,ir_length,ba_list,calc_option='fft_method'):
     ir_length: integer. number of samples that the cIR should be (same as the impulse_resp)
     ba_list: list with 2 np.arrays. b and a arrays with denominator and numerator values - derived
             from signal.butter
-    calc_option: choice between 'fft_method' and 'filter_method'
+
 
     Output:
     cIR; 1x ir_length np.array. compensatory impulse response to get a flat frequency
@@ -108,31 +108,27 @@ def calc_cIR(impulse_resp,ir_length,ba_list,calc_option='fft_method'):
     dirac_pulse_filtered = signal.lfilter(b,a,dirac_pulse)
     impulse_resp_filtered = signal.lfilter(b,a,impulse_resp)
 
-    if calc_option == 'fft_method':
 
 
 
-        print('FFTs being calculated...')
-        # calculate the fft's of both filtered signals :
-        filt_dpulse_fft = spyfft.fft(dirac_pulse_filtered)
-        filt_iresp_fft = spyfft.fft(impulse_resp_filtered)
+    print('FFTs being calculated...')
+    # calculate the fft's of both filtered signals :
+    filt_dpulse_fft = spyfft.fft(dirac_pulse_filtered)
+    filt_iresp_fft = spyfft.fft(impulse_resp_filtered)
 
-        # now divide the all frequency signal w the some-frequency signal :
-        # to get the cIR :
-        cIR_fft = filt_dpulse_fft / filt_iresp_fft
+    # now divide the all frequency signal w the some-frequency signal :
+    # to get the cIR :
+    cIR_fft = filt_dpulse_fft / filt_iresp_fft
 
-        # calculate the iFFT to get a compensatory IR filter :
-        cIR = spyfft.ifft(cIR_fft).real # here HRG shifts array circularly ..why ?
+    # calculate the iFFT to get a compensatory IR filter :
+    cIR = spyfft.ifft(cIR_fft).real # here HRG shifts array circularly ..why ?
 
-        cIR_final = np.roll(cIR,int(ir_length/2) )
+    cIR_final = np.roll(cIR,int(ir_length/2) )
 
-        return(cIR_final)
+    cir_filt = signal.lfilter(b,a,cIR_final)
 
-    elif calc_option == 'filter_method':
+    return(cir_filt)
 
-        cIR = dirac_pulse_filtered - impulse_resp
-
-        return(cIR)
 
 
 flatten = np.ndarray.flatten # one line function assignment
