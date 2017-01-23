@@ -158,7 +158,7 @@ ir_length = 1024
 input_channels = [2,9]
 output_channels = [2,1]
 total_num_samples = int(durn_pbk*FS)
-highpass_frequency = 10000.0
+highpass_frequency = 15000.0
 nyquist_freq = FS/2
 #### generate playbacks :
 
@@ -219,7 +219,7 @@ plt.plot(cir)
 min_plot_freq = highpass_frequency
 max_plot_freq = int(FS/2)
 freq_range = max_plot_freq - min_plot_freq
-smoothing_freqs = np.linspace(min_plot_freq,max_plot_freq,freq_range/500)
+smoothing_freqs = np.linspace(min_plot_freq,max_plot_freq,freq_range/1000)
 both_delays = delay_samples + intfc_pbk_delay
 
 plt.figure(3)
@@ -229,7 +229,7 @@ plt.plot(rec_sound[both_delays:,1])
 plt.title('original recorded signal')
 
 plt.subplot(412)
-orig_fft = spyfft.rfft(rec_sound[both_delays:,1])
+orig_fft = spyfft.fft(rec_sound[both_delays:,1])
 num_freqs= np.linspace(0,FS/2,orig_fft.size)
 plt.plot(num_freqs,20*np.log10(abs(orig_fft)))
 plt.title('FFT original recorded sound')
@@ -245,7 +245,7 @@ plt.title('cIR X original sound recorded sound')
 
 
 plt.subplot(414)
-crct_sig_fft = spyfft.rfft(rec_corrected_sound[both_delays:,1])
+crct_sig_fft = spyfft.fft(rec_corrected_sound[both_delays:,1])
 num_freqs_crct= np.linspace(0,FS/2,crct_sig_fft.size)
 plt.plot(num_freqs_crct,20*np.log10(abs(crct_sig_fft)))
 plt.title('FFT: with cIR recorded sound')
