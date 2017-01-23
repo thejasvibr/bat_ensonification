@@ -27,9 +27,12 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import scipy.signal as signal
 from scipy.interpolate import InterpolatedUnivariateSpline
+import random
 plt.rcParams['agg.path.chunksize'] = 10000
 
+
 np.random.seed(612) # to recreate the same playback signals at any point of time.
+
 
 ### generate noise signal :
 
@@ -68,12 +71,12 @@ def get_impulse_response(input_signal,rec_signal,ir_length,FS,exp_delaysamples):
     cross_cor = np.correlate( input_sig_flat, rec_sig_flat, 'same')
 
     # get the index of maximum correlation to align the impulse response properly
-    max_corr = input_sig_flat.size/2 - np.argmax(abs(cross_cor))
+    max_corr =  np.argmax(abs(cross_cor))
 
     # choose the cross corr along a particular window size
     impulse_resp = cross_cor[max_corr-int(ir_length/2) :max_corr+ int(ir_length/2)]
 
-    return( [impulse_resp])
+    return( impulse_resp)
 
 
 
@@ -149,13 +152,13 @@ def oned_fft_interp(new_freqs,fft_freqs,fft_var,interp_type='linear',kvalue=3):
 
 
 
-durn_pbk = 2
+durn_pbk = 1
 FS = 192000
 numramp_samples = 0.1*FS
 mic_speaker_dist = 2 # in meters
 vsound = 330 # in meters/sec
 delay_time = float(mic_speaker_dist/vsound)
-ir_length = 4096
+ir_length = 1024
 input_channels = [2,9]
 output_channels = [2,1]
 total_num_samples = int(durn_pbk*FS)
@@ -186,11 +189,11 @@ delay_samples = int(delay_time *FS)
 
 intfc_pbk_delay = np.argmax(rec_sound[:,0]) # audio interface playback delay
 
-irparams = get_impulse_response(pbk_sig,rec_sound[intfc_pbk_delay:,1],ir_length,FS,delay_samples)
+impulse_resp = get_impulse_response(pbk_sig,rec_sound[intfc_pbk_delay:,1],ir_length,FS,0)
 
 print('impulse and frequency response being calculated now...')
 
-cir = calc_cIR(irparams[0],ir_length,ba_list)
+cir = calc_cIR(impulse_resp,ir_length,ba_list,'filter_method')
 
 print('signal being convolved with cIR now ')
 
