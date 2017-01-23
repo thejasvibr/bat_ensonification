@@ -190,7 +190,7 @@ impulse_resp = get_impulse_response(pbk_sig,rec_sound[intfc_pbk_delay:,1],ir_len
 
 print('impulse and frequency response being calculated now...')
 
-cir = calc_cIR(impulse_resp,ir_length,ba_list,'filter_method')
+cir = calc_cIR(impulse_resp,ir_length,ba_list)
 
 print('signal being convolved with cIR now ')
 
@@ -261,6 +261,10 @@ plt.plot(smoothing_freqs,sm_fft-np.max(sm_fft),'r')
 sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft,'cubic')
 plt.plot(smoothing_freqs,sm_fft_orig-np.max(sm_fft_orig),'g')
 
+plt.figure(5)
+plt.title('IR and cIR')
+plt.plot(20*np.log10(abs(spyfft.fft(impulse_resp))))
+plt.plot(20*np.log10(abs(spyfft.fft(cir))))
 
 #fft_res = spyfft.rfft(ccor)
 #plt.plot(np.linspace(0,FS/2,2048),20*np.log10(abs(fft_res)))
