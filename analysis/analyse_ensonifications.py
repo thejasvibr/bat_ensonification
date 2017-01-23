@@ -80,7 +80,7 @@ if __name__ == '__main__':
     rec_w_bat =rec_empty_room*0.01 +  signal.lfilter(b,a,w_bat_echo)
 
 
-    ir = calc_IR(rec_w_bat,rec_empty_room,512)
+    ir = calc_IR(rec_w_bat,rec_empty_room,1024)
 
     amp_ir = np.std(rec_w_bat)/np.std(ir) * ir
 
@@ -97,6 +97,7 @@ if __name__ == '__main__':
     empty_room_fresp = 20*np.log10(abs(spyfft.fft(rec_empty_room)))
     empty_room_fresp = empty_room_fresp[:rec_empty_room.size/2]
     plt.plot(empty_room_fresp)
+    plt.plot()
 
     w_bat_fresp = 20*np.log10(abs(spyfft.fft(rec_w_bat)))
     w_bat_fresp = w_bat_fresp[:w_bat_fresp.size/2]
