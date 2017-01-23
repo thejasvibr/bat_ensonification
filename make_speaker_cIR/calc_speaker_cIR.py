@@ -106,6 +106,7 @@ def calc_cIR(impulse_resp,ir_length,ba_list,calc_option='fft_method'):
     a = ba_list[1]
     # filter the frequencies for the dirac pulse and the recorded IR:
     dirac_pulse_filtered = signal.lfilter(b,a,dirac_pulse)
+    impulse_resp_filtered = signal.lfilter(b,a,impulse_resp)
 
     if calc_option == 'fft_method':
 
@@ -114,7 +115,7 @@ def calc_cIR(impulse_resp,ir_length,ba_list,calc_option='fft_method'):
         print('FFTs being calculated...')
         # calculate the fft's of both filtered signals :
         filt_dpulse_fft = spyfft.fft(dirac_pulse_filtered)
-        filt_iresp_fft = spyfft.fft(impulse_resp)
+        filt_iresp_fft = spyfft.fft(impulse_resp_filtered)
 
         # now divide the all frequency signal w the some-frequency signal :
         # to get the cIR :
