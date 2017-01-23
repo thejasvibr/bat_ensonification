@@ -125,9 +125,8 @@ def calc_cIR(impulse_resp,ir_length,ba_list):
 
     cIR_final = np.roll(cIR,int(ir_length/2) )
 
-    cir_filt = signal.lfilter(b,a,cIR_final)
 
-    return(cir_filt)
+    return(cIR_final)
 
 
 
@@ -262,9 +261,11 @@ sm_fft_orig= oned_fft_interp(smoothing_freqs,num_freqs,orig_fft,'cubic')
 plt.plot(smoothing_freqs,sm_fft_orig-np.max(sm_fft_orig),'g')
 
 plt.figure(5)
-plt.title('IR and cIR')
-plt.plot(20*np.log10(abs(spyfft.fft(impulse_resp))))
-plt.plot(20*np.log10(abs(spyfft.fft(cir))))
+plt.title('IR(blue) and cIR(green)')
+x_axis = np.linspace(0,192/2,ir_length/2)
+plt.plot(x_axis,20*np.log10(abs(spyfft.fft(impulse_resp)))[:ir_length/2]  )
+plt.plot(x_axis,20*np.log10(abs(spyfft.fft(cir)))   [:ir_length/2]       )
+plt.xlabel('Frequency KHz')
 
 #fft_res = spyfft.rfft(ccor)
 #plt.plot(np.linspace(0,FS/2,2048),20*np.log10(abs(fft_res)))
