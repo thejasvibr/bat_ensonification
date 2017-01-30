@@ -1,0 +1,131 @@
+# -*- coding: utf-8 -*-
+"""
+output flat frequency noise from the viva speakers 
+
+Created on Mon Jan 30 09:51:12 2017
+
+@author: tbeleyur
+"""
+
+import numpy as np
+import sounddevice as sd
+import matplotlib.pyplot as plt
+import scipy.fftpack as spyfft
+import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+import scipy.signal as signal
+from scipy.interpolate import InterpolatedUnivariateSpline
+plt.rcParams['agg.path.chunksize'] = 10000
+import scipy.io.wavfile as wav
+import calc_cIR as ir_funcs 
+
+np.random.seed(612)
+
+durn = 1.5
+FS = 192000 
+num_samples = int(durn*FS)
+ramp_durn = 0.1
+ramp_samples = int(ramp_durn * FS)
+silence_durn = 0.5
+silence_samples = int(FS*silence_durn)
+
+hp_freq = 10000
+
+device_list = sd.query_devices()
+tgt_dev_name = 'ASIO Fireface USB'
+tgt_dev_bool = [tgt_dev_name in each_device['name'] for each_device in device_list]
+tgt_ind = int(np.argmax(np.array(tgt_dev_bool)))
+
+dev_in_ch = [2,9]
+dev_out_ch = [2,1]
+
+hp_b, hp_a = signal.butter(8,[float(hp_freq)/FS],'highpass')
+
+orig_sig = ir_funcs.gen_gaussian_noise(num_samples,0,0.2)
+orig_sig = signal.lfilter(hp_b,hp_a,orig_sig)
+ramp_orig = ir_funcs.add_ramps(ramp_samples,orig_sig )
+orig_zeropad = ir_funcs.zero_pad(silence_samples,ramp_orig)
+
+sync_channel = np.zeros(ramp_orig.size)
+sync_channel[0] = 1
+sync_zeropad = ir_funcs.zero_pad(silence_samples,sync_channel)
+
+orig_playback = np.column_stack( (sync_zeropad,orig_zeropad) )
+
+rec_sound = sd.playrec(orig_playback,samplerate= FS, input_mapping=dev_in_ch, output_mapping= dev_out_ch, device = tgt_ind)
+sd.wait()
+
+plt.figure(1)
+plt.plot(rec_sound)
+plt.title('raw recording display')
+
+rec_sync_index = np.argmax(abs(rec_sound[:,0]))
+post_sync_rec = rec_sound[rec_sync_index:,1]
+
+pbk_sync = np.argmax(abs(orig_playback[:,0]))
+post_sync_orig = orig_playback[pbk_sync:,1]
+post_sync_orig = post_sync_orig[:post_sync_rec.size]
+
+align_cor = np.correlate(post_sync_rec,post_sync_orig,'same')
+print('signal correlation happening now')
+
+mid_point_cor = align_cor.size/2 -1 
+align_index =  np.argmax(abs(align_cor)) - mid_point_cor
+
+aligned_rec = post_sync_rec[align_index:align_index+num_samples]
+aligned_orig = post_sync_orig[:num_samples]
+
+
+tgt_sig = np.zeros(aligned_rec.size)
+tgt_sig [tgt_sig.size/2 -1 ] =1 
+
+# needs to be perfected properly ... the time points etc...
+comp_freq = ir_funcs.freq_deconv(aligned_rec,ramp_orig) # aligned_orig
+
+orig_freq = spyfft.fft(aligned_orig)
+conv_freq = comp_freq*orig_freq
+conv_sig = spyfft.ifft(conv_freq).real
+
+plt.figure(3)
+plt.plot(np.linspace(0,96,aligned_orig.size/2),ir_funcs.get_pwr_spec(aligned_orig))
+plt.plot(np.linspace(0,96,aligned_rec.size/2),ir_funcs.get_pwr_spec(aligned_rec))
+plt.plot(np.linspace(0,96,comp_freq.size/2),20*np.log10(abs(comp_freq[:comp_freq.size/2])))
+
+ramp_convsig = ir_funcs.add_ramps(ramp_samples,conv_sig) 
+zerop_convsig = ir_funcs.zero_pad(silence_samples,ramp_convsig)
+
+rms_norm_convsig = np.std(ramp_orig)/np.std(zerop_convsig) * zerop_convsig
+
+hp_convsig = signal.lfilter(hp_b,hp_a,rms_norm_convsig)
+
+print('compensated playback occuring now')
+# rms_norm_convsig
+conv_rec = sd.playrec(hp_convsig ,samplerate=FS,input_mapping=[9],output_mapping=[1],device=tgt_ind)
+sd.wait()
+plt.figure(1)
+plt.plot(conv_rec)
+
+plt.figure(2)
+fft_convrec = ir_funcs.get_pwr_spec( conv_rec[silence_samples:-silence_samples] )
+freqs_convrec = np.linspace(0,96,fft_convrec.size)
+
+fft_orig = ir_funcs.get_pwr_spec(ramp_orig)
+freqs_orig = np.linspace(0,96,fft_orig.size)
+
+new_freqs = np.linspace(20,96,76)
+
+intp_val_convrec = ir_funcs.oned_fft_interp(new_freqs,freqs_convrec,fft_convrec,'linear')
+intp_val_orig = ir_funcs.oned_fft_interp(new_freqs,freqs_orig,fft_orig,'linear')
+
+plt.plot(new_freqs,intp_val_convrec-np.max(intp_val_convrec),'g*-')
+plt.plot(new_freqs,intp_val_orig-np.max(intp_val_orig),'r*-')
+
+
+
+
+
+
+
+
+
+
