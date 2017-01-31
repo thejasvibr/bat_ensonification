@@ -6,7 +6,6 @@ Created on Mon Jan 30 09:51:12 2017
 
 @author: tbeleyur
 """
-
 import numpy as np
 import sounddevice as sd
 import matplotlib.pyplot as plt
@@ -18,10 +17,12 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 plt.rcParams['agg.path.chunksize'] = 10000
 import scipy.io.wavfile as wav
 import calc_cIR as ir_funcs
+import sys 
+sys.stdout.flush()
 
 np.random.seed(612)
 
-durn = 1.5
+durn = 1
 FS = 192000
 num_samples = int(durn*FS)
 ramp_durn = 0.1
@@ -59,7 +60,7 @@ rec_sound = sd.playrec(orig_playback,samplerate= FS, input_mapping=dev_in_ch, ou
 sd.wait()
 
 plt.figure(1)
-plt.plot(rec_sound)
+plt.plot(rec_sound,label='direct recording')
 plt.title('raw recording + sync channel display')
 
 rec_sync_index = np.argmax(abs(rec_sound[:,0]))
@@ -69,8 +70,9 @@ pbk_sync = np.argmax(abs(orig_playback[:,0]))
 post_sync_orig = orig_playback[pbk_sync:,1]
 post_sync_orig = post_sync_orig[:post_sync_rec.size]
 
-align_cor = np.correlate(post_sync_rec,post_sync_orig,'same')
 print('signal correlation happening now')
+align_cor = np.correlate(post_sync_rec,post_sync_orig,'same')
+
 
 mid_point_cor = align_cor.size/2 -1
 align_index =  np.argmax(abs(align_cor)) - mid_point_cor
@@ -102,7 +104,7 @@ comp_freqs, = plt.plot(np.linspace(0,96,comp_freq.size/2),20*np.log10(abs(comp_f
 plt.legend(handles = [digital_sig,uncomp_rec,comp_freqs])
 
 ramp_convsig = ir_funcs.add_ramps(ramp_samples,conv_sig)
-sync_ch_convsig = np.zeros(ramp_convsig)
+sync_ch_convsig = np.zeros(ramp_convsig.size)
 sync_ch_convsig[0] = 1
 
 zerop_convsig = ir_funcs.zero_pad(silence_samples,ramp_convsig)
@@ -119,8 +121,6 @@ print('compensated playback occuring now')
 # rms_norm_convsig
 conv_rec = sd.playrec(conv_playback ,samplerate=FS,input_mapping=dev_in_ch,output_mapping=dev_out_ch,device=tgt_ind)
 sd.wait()
-plt.figure(1)
-plt.plot(conv_rec)
 
 # plot the convolved playback recording taking into account the time
 # required for sound to reach after playback
@@ -146,10 +146,13 @@ new_freqs = np.linspace(20,96,76)
 intp_val_convrec = ir_funcs.oned_fft_interp(new_freqs,freqs_convrec,fft_convrec,'linear')
 intp_val_orig = ir_funcs.oned_fft_interp(new_freqs,freqs_orig,fft_orig,'linear')
 
-convrec_plot, = plt.plot(new_freqs,intp_val_convrec-np.max(intp_val_convrec),'g*-',label ='speaker IR compensated')
-digital_sig, = plt.plot(new_freqs,intp_val_orig-np.max(intp_val_orig),'r*-',label='digital signal')
-plt.legend(handles = [convrec_plot,digital_sig])
+convrec_plot, = plt.plot(new_freqs,intp_val_convrec-np.max(intp_val_convrec),'y*-',label ='speaker IR compensated')
+digital_sig, = plt.plot(new_freqs,intp_val_orig-np.max(intp_val_orig),'b*-',label='digital signal')
+plt.legend(handles = [convrec_plot,digital_sig],bbox_to_anchor=(0.5,0.2),loc=1,borderaxespad=0.)
 
+plt.figure(1)
+convrec, = plt.plot(conv_rec,label='convolved recording')
+plt.legend(handles=[])
 
 
 
