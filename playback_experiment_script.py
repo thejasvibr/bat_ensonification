@@ -16,8 +16,8 @@ plt.rcParams['agg.path.chunksize'] = 10000
 
 
 # location of playback sound file  
-pbk_wav_locn = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_01_25//playback_sound//'
-pbk_file = 'cIR_conv_signal_2017-01-31_11-16'
+pbk_wav_locn = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_31_01_playback_sound//'
+pbk_file = 'cIR_conv_signal_2017-01-31_11-16.npy'
 
 
 # initiate and record playback :
@@ -41,7 +41,7 @@ complete_file = tgt_folder + file_name
 
 
 # load the playback sound file :
-FS, pbk_sound = bat_enson.load_playback_sound(pbk_wav_locn)
+pbk_sound = bat_enson.load_playback_array(pbk_wav_locn)
 
 composite_playback = bat_enson.include_sync_signal(pbk_sound)
 
