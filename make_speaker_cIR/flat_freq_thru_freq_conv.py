@@ -22,7 +22,7 @@ sys.stdout.flush()
 
 np.random.seed(612)
 
-durn = 1
+durn = 2
 FS = 192000
 num_samples = int(durn*FS)
 ramp_durn = 0.1
@@ -60,7 +60,7 @@ rec_sound = sd.playrec(orig_playback,samplerate= FS, input_mapping=dev_in_ch, ou
 sd.wait()
 
 plt.figure(1)
-plt.plot(rec_sound,label='direct recording')
+plt.plot(rec_sound)
 plt.title('raw recording + sync channel display')
 
 rec_sync_index = np.argmax(abs(rec_sound[:,0]))
@@ -73,6 +73,7 @@ post_sync_orig = post_sync_orig[:post_sync_rec.size]
 print('signal correlation happening now')
 align_cor = np.correlate(post_sync_rec,post_sync_orig,'same')
 
+print('')
 
 mid_point_cor = align_cor.size/2 -1
 align_index =  np.argmax(abs(align_cor)) - mid_point_cor
@@ -92,7 +93,7 @@ conv_freq = comp_freq*orig_freq
 conv_sig = spyfft.ifft(conv_freq).real
 
 plt.figure(2)
-plt.title('Power spectrum of digital signal, un-compensated recordings AND compensated frequencies ')
+plt.title('Spectra: Original signal, recorded signal, compensatory signal  ')
 plt.xlabel('Frequency, KHz')
 plt.ylabel('Power, dB')
 
@@ -133,7 +134,7 @@ total_delay = pbk_delay + trans_delay_samples
 plt.figure(3)
 plt.title('Power spectrum of digital signal and speaker IR compensated signal')
 plt.xlabel('Frequency, KHz')
-plt.ylabel('Power, dB')
+plt.ylabel('Power, dB (rel. max dB value)')
 
 fft_convrec = ir_funcs.get_pwr_spec( conv_rec[total_delay:total_delay+num_samples] )
 freqs_convrec = np.linspace(0,96,fft_convrec.size)
@@ -151,8 +152,8 @@ digital_sig, = plt.plot(new_freqs,intp_val_orig-np.max(intp_val_orig),'b*-',labe
 plt.legend(handles = [convrec_plot,digital_sig],bbox_to_anchor=(0.5,0.2),loc=1,borderaxespad=0.)
 
 plt.figure(1)
-convrec, = plt.plot(conv_rec,label='convolved recording')
-plt.legend(handles=[])
+plt.plot(conv_rec,label='convolved recording')
+
 
 
 
