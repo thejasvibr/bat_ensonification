@@ -22,7 +22,7 @@ sys.stdout.flush()
 
 np.random.seed(612)
 
-durn = 2
+durn = 2.2
 FS = 192000
 num_samples = int(durn*FS)
 ramp_durn = 0.1
@@ -111,11 +111,11 @@ sync_ch_convsig[0] = 1
 zerop_convsig = ir_funcs.zero_pad(silence_samples,ramp_convsig)
 zerop_sync_ch_convsig = ir_funcs.zero_pad(silence_samples,sync_ch_convsig)
 
-rms_norm_convsig = np.std(ramp_orig)/np.std(zerop_convsig) * zerop_convsig
+hp_convsig = signal.lfilter(hp_b,hp_a,zerop_convsig)
+rms_norm_convsig = np.std(orig_zeropad)/np.std(hp_convsig) * zerop_convsig
 
-hp_convsig = signal.lfilter(hp_b,hp_a,rms_norm_convsig)
 
-conv_playback = np.column_stack((zerop_sync_ch_convsig,hp_convsig))
+conv_playback = np.column_stack((zerop_sync_ch_convsig,rms_norm_convsig))
 
 
 print('compensated playback occuring now')
