@@ -42,7 +42,9 @@ complete_file = tgt_folder + file_name
 
 
 # load the playback sound file :
-pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)
+amp_dB = 6.0
+
+pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)*10**(amp_dB/20)
 
 composite_playback = bat_enson.include_sync_signal(pbk_sound)
 
@@ -54,5 +56,5 @@ plt.plot(rec_sound)
 
 rec_post_sync = bat_enson.remove_pre_sync(rec_sound)
 
-bat_enson.save_rec_file(np.float16(rec_post_sync),FS,complete_file)
+bat_enson.save_rec_file(np.int16(rec_post_sync*32767),FS,complete_file)
 
