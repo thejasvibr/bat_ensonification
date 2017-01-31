@@ -28,6 +28,19 @@ def load_playback_array(sound_array):
     
     return(playback_array)
     
+def find_device_index(tgt_dev_name):
+    '''
+    searches for device_name in 
+    the devices and detects the device index number
+    Input: string. 
+    Output: integer
+    '''
+    device_list = sd.query_devices()
+    tgt_dev_bool = [tgt_dev_name in each_device['name'] for each_device in device_list]
+    tgt_ind = int(np.argmax(np.array(tgt_dev_bool)))
+    
+    return(tgt_ind)
+    
 def include_sync_signal(pbk_sound):
     '''
     adds the sync trigger channel to the playback sound 

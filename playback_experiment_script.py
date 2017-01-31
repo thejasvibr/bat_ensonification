@@ -23,7 +23,10 @@ pbk_file = 'cIR_conv_signal_2017-01-31_11-16'
 # initiate and record playback :
 in_channels = [2,9] # [sync, microphone]
 out_channels = [2,1] # [ sync , speaker ] 
-ai_number = 38 # audio interface serial number 38 for PC opp Fluraum klein, and 40 for TBR laptop
+
+tgt_dev_name = 'ASIO Fireface USB'
+
+ai_number = bat_enson.find_device_index(tgt_dev_name) # audio interface serial number 38 for PC opp Fluraum klein, and 40 for TBR laptop
 
 # user input required :
 # target file name :
