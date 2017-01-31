@@ -163,7 +163,7 @@ plt.plot(conv_rec,label='convolved recording')
 plt.figure(4)
 window_length = 2048
 ir_max_point = np.argmax(abs(align_cor))
-plt.title('Impulse Response centered on maximum : %d sample window length'%window_length)
+plt.title('Impulse Response centered on max corr point : %d sample window length'%window_length)
 plt.plot(align_cor[ir_max_point-window_length/2:ir_max_point+window_length/2])
 
 
