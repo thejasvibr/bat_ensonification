@@ -34,7 +34,7 @@ ai_number = bat_enson.find_device_index(tgt_dev_name) # audio interface serial n
 # target file name :
 playback_angle = 0
 rec_type = 'with_' # with_ or without_ bat
-tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_01_25//'
+tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_01_31//'
 
 # script puts the name together 
 time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%M')
@@ -43,7 +43,7 @@ complete_file = tgt_folder + file_name
 
 
 # load the playback sound file :
-amp_dB = 10.0
+amp_dB = 1.0
 
 pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)*10**(amp_dB/20)
 
