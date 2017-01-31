@@ -18,11 +18,17 @@ plt.rcParams['agg.path.chunksize'] = 10000
 import scipy.io.wavfile as wav
 import calc_cIR as ir_funcs
 import sys 
+import datetime as dt
 sys.stdout.flush()
 
 np.random.seed(612)
 
-durn = 2.2
+# location to where the generated data is saved to as numpy arrays
+target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_31_01_playback_sound\\'
+
+
+# playback and recording details :
+durn = 3.0
 FS = 192000
 num_samples = int(durn*FS)
 ramp_durn = 0.1
@@ -126,7 +132,7 @@ sd.wait()
 # plot the convolved playback recording taking into account the time
 # required for sound to reach after playback
 
-pbk_delay =np.argmax(conv_playback[:,0])
+pbk_delay =np.argmax(abs(conv_playback[:,0]))
 total_delay = pbk_delay + trans_delay_samples
 
 
@@ -154,8 +160,19 @@ plt.legend(handles = [convrec_plot,digital_sig],bbox_to_anchor=(0.5,0.2),loc=1,b
 plt.figure(1)
 plt.plot(conv_rec,label='convolved recording')
 
+plt.figure(4)
+window_length = 2048
+ir_max_point = np.argmax(abs(align_cor))
+plt.title('Impulse Response centered on maximum : %d sample window length'%window_length)
+plt.plot(align_cor[ir_max_point-window_length/2:ir_max_point+window_length/2])
 
 
+# column stack the digital playback signal and the compensated signal for future reference :
+time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H-%M') 
+
+np.save(target_folder+'wcIRplayback_recording_' + time_stamp,conv_rec)
+np.save(target_folder+'cIR_conv_signal_'+time_stamp,rms_norm_convsig)
+np.save(target_folder+'orig_signal_'+time_stamp,orig_sig)
 
 
 
