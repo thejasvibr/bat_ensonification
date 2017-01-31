@@ -13,7 +13,8 @@ import playback_saving_funcs as bat_enson
 import sounddevice as sd 
 import datetime as dt 
 plt.rcParams['agg.path.chunksize'] = 10000
-
+import sys
+sys.stdout.flush()
 
 # location of playback sound file  
 pbk_wav_locn = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_31_01_playback_sound//'
@@ -36,13 +37,13 @@ rec_type = 'with_' # with_ or without_ bat
 tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_01_25//'
 
 # script puts the name together 
-time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%S')
+time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%M')
 file_name = 'playback_angle_%d_'%playback_angle + rec_type + time_stamp + '.WAV'
 complete_file = tgt_folder + file_name
 
 
 # load the playback sound file :
-amp_dB = 6.0
+amp_dB = 3.0
 
 pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)*10**(amp_dB/20)
 
@@ -56,5 +57,5 @@ plt.plot(rec_sound)
 
 rec_post_sync = bat_enson.remove_pre_sync(rec_sound)
 
-bat_enson.save_rec_file(np.int16(rec_post_sync*32767),FS,complete_file)
+bat_enson.save_rec_file(rec_post_sync,FS,complete_file)
 
