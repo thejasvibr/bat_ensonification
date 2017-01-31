@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-output flat frequency noise from the viva speakers 
+output flat frequency noise from the viva speakers
 
 Created on Mon Jan 30 09:51:12 2017
 
@@ -17,17 +17,20 @@ import scipy.signal as signal
 from scipy.interpolate import InterpolatedUnivariateSpline
 plt.rcParams['agg.path.chunksize'] = 10000
 import scipy.io.wavfile as wav
-import calc_cIR as ir_funcs 
+import calc_cIR as ir_funcs
 
 np.random.seed(612)
 
 durn = 1.5
-FS = 192000 
+FS = 192000
 num_samples = int(durn*FS)
 ramp_durn = 0.1
 ramp_samples = int(ramp_durn * FS)
 silence_durn = 0.5
 silence_samples = int(FS*silence_durn)
+dist_mic_speaker = 2.0 # distance in metres
+vsound = 320.0
+trans_delay_samples = int((dist_mic_speaker/vsound)*FS)
 
 hp_freq = 10000
 
@@ -57,7 +60,7 @@ sd.wait()
 
 plt.figure(1)
 plt.plot(rec_sound)
-plt.title('raw recording display')
+plt.title('raw recording + sync channel display')
 
 rec_sync_index = np.argmax(abs(rec_sound[:,0]))
 post_sync_rec = rec_sound[rec_sync_index:,1]
@@ -69,7 +72,7 @@ post_sync_orig = post_sync_orig[:post_sync_rec.size]
 align_cor = np.correlate(post_sync_rec,post_sync_orig,'same')
 print('signal correlation happening now')
 
-mid_point_cor = align_cor.size/2 -1 
+mid_point_cor = align_cor.size/2 -1
 align_index =  np.argmax(abs(align_cor)) - mid_point_cor
 
 aligned_rec = post_sync_rec[align_index:align_index+num_samples]
@@ -77,36 +80,62 @@ aligned_orig = post_sync_orig[:num_samples]
 
 
 tgt_sig = np.zeros(aligned_rec.size)
-tgt_sig [tgt_sig.size/2 -1 ] =1 
+tgt_sig [tgt_sig.size/2 -1 ] =1
 
-# needs to be perfected properly ... the time points etc...
-comp_freq = ir_funcs.freq_deconv(aligned_rec,ramp_orig) # aligned_orig
+
+comp_freq = ir_funcs.freq_deconv(aligned_rec,ramp_orig)
 
 orig_freq = spyfft.fft(aligned_orig)
 conv_freq = comp_freq*orig_freq
 conv_sig = spyfft.ifft(conv_freq).real
 
-plt.figure(3)
-plt.plot(np.linspace(0,96,aligned_orig.size/2),ir_funcs.get_pwr_spec(aligned_orig))
-plt.plot(np.linspace(0,96,aligned_rec.size/2),ir_funcs.get_pwr_spec(aligned_rec))
-plt.plot(np.linspace(0,96,comp_freq.size/2),20*np.log10(abs(comp_freq[:comp_freq.size/2])))
+plt.figure(2)
+plt.title('Power spectrum of digital signal, un-compensated recordings AND compensated frequencies ')
+plt.xlabel('Frequency, KHz')
+plt.ylabel('Power, dB')
 
-ramp_convsig = ir_funcs.add_ramps(ramp_samples,conv_sig) 
+digital_sig, = plt.plot(np.linspace(0,96,aligned_orig.size/2),ir_funcs.get_pwr_spec(aligned_orig),label='original signal')
+uncomp_rec, = plt.plot(np.linspace(0,96,aligned_rec.size/2),ir_funcs.get_pwr_spec(aligned_rec),label='uncompensated recordings')
+
+comp_freqs, = plt.plot(np.linspace(0,96,comp_freq.size/2),20*np.log10(abs(comp_freq[:comp_freq.size/2])),label ='compensated spectrum')
+
+plt.legend(handles = [digital_sig,uncomp_rec,comp_freqs])
+
+ramp_convsig = ir_funcs.add_ramps(ramp_samples,conv_sig)
+sync_ch_convsig = np.zeros(ramp_convsig)
+sync_ch_convsig[0] = 1
+
 zerop_convsig = ir_funcs.zero_pad(silence_samples,ramp_convsig)
+zerop_sync_ch_convsig = ir_funcs.zero_pad(silence_samples,sync_ch_convsig)
 
 rms_norm_convsig = np.std(ramp_orig)/np.std(zerop_convsig) * zerop_convsig
 
 hp_convsig = signal.lfilter(hp_b,hp_a,rms_norm_convsig)
 
+conv_playback = np.column_stack((zerop_sync_ch_convsig,hp_convsig))
+
+
 print('compensated playback occuring now')
 # rms_norm_convsig
-conv_rec = sd.playrec(hp_convsig ,samplerate=FS,input_mapping=[9],output_mapping=[1],device=tgt_ind)
+conv_rec = sd.playrec(conv_playback ,samplerate=FS,input_mapping=dev_in_ch,output_mapping=dev_out_ch,device=tgt_ind)
 sd.wait()
 plt.figure(1)
 plt.plot(conv_rec)
 
-plt.figure(2)
-fft_convrec = ir_funcs.get_pwr_spec( conv_rec[silence_samples:-silence_samples] )
+# plot the convolved playback recording taking into account the time
+# required for sound to reach after playback
+
+pbk_delay =np.argmax(conv_playback[:,0])
+total_delay = pbk_delay + trans_delay_samples
+
+
+
+plt.figure(3)
+plt.title('Power spectrum of digital signal and speaker IR compensated signal')
+plt.xlabel('Frequency, KHz')
+plt.ylabel('Power, dB')
+
+fft_convrec = ir_funcs.get_pwr_spec( conv_rec[total_delay:total_delay+num_samples] )
 freqs_convrec = np.linspace(0,96,fft_convrec.size)
 
 fft_orig = ir_funcs.get_pwr_spec(ramp_orig)
@@ -117,8 +146,10 @@ new_freqs = np.linspace(20,96,76)
 intp_val_convrec = ir_funcs.oned_fft_interp(new_freqs,freqs_convrec,fft_convrec,'linear')
 intp_val_orig = ir_funcs.oned_fft_interp(new_freqs,freqs_orig,fft_orig,'linear')
 
-plt.plot(new_freqs,intp_val_convrec-np.max(intp_val_convrec),'g*-')
-plt.plot(new_freqs,intp_val_orig-np.max(intp_val_orig),'r*-')
+convrec_plot, = plt.plot(new_freqs,intp_val_convrec-np.max(intp_val_convrec),'g*-',label ='speaker IR compensated')
+digital_sig, = plt.plot(new_freqs,intp_val_orig-np.max(intp_val_orig),'r*-',label='digital signal')
+plt.legend(handles = [convrec_plot,digital_sig])
+
 
 
 
