@@ -23,6 +23,7 @@ pbk_file = 'cIR_conv_signal_2017-01-31_11-16.npy'
 # initiate and record playback :
 in_channels = [2,9] # [sync, microphone]
 out_channels = [2,1] # [ sync , speaker ] 
+FS = 192000
 
 tgt_dev_name = 'ASIO Fireface USB'
 
@@ -41,7 +42,7 @@ complete_file = tgt_folder + file_name
 
 
 # load the playback sound file :
-pbk_sound = bat_enson.load_playback_array(pbk_wav_locn)
+pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)
 
 composite_playback = bat_enson.include_sync_signal(pbk_sound)
 
@@ -53,6 +54,5 @@ plt.plot(rec_sound)
 
 rec_post_sync = bat_enson.remove_pre_sync(rec_sound)
 
-bat_enson.save_rec_file(rec_post_sync,FS,complete_file)
 bat_enson.save_rec_file(np.float16(rec_post_sync),FS,complete_file)
 
