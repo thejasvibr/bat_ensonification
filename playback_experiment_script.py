@@ -23,10 +23,10 @@ pbk_file = 'cIR_conv_signal_2017-02-01_12-07.npy'
 
 # user input required :
 # target file name :
-playback_angle = 60
-Fireface_gain = 30
-rec_type = 'GRASNEW_%sgain_without_at_1m_'%Fireface_gain # with_ or without_ bat
-tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01//GRAS_new_without//'
+playback_angle = 0
+Fireface_gain = 15
+rec_type = 'SANKEN_%sgain_with_bat0_at_2m_'%Fireface_gain # with_ or without_ bat
+tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01//SANKEN//'
 
 
 
