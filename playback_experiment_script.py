@@ -23,9 +23,9 @@ pbk_file = 'cIR_conv_signal_2017-02-01_12-07.npy'
 
 # user input required :
 # target file name :
-playback_angle = 30
-Fireface_gain = 15
-rec_type = 'GRASNEW_%sgain_without_at_2m_'%Fireface_gain # with_ or without_ bat
+playback_angle = 60
+Fireface_gain = 30
+rec_type = 'GRASNEW_%sgain_without_at_1m_'%Fireface_gain # with_ or without_ bat
 tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01//GRAS_new_without//'
 
 
@@ -42,7 +42,7 @@ ai_number = bat_enson.find_device_index(tgt_dev_name) # audio interface serial n
 
 
 # script puts the name together 
-time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%M')
+time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
 file_name = 'playback_angle_%d_'%playback_angle + rec_type + time_stamp + '.WAV'
 complete_file = tgt_folder + file_name
 
