@@ -23,10 +23,10 @@ pbk_file = 'cIR_conv_signal_2017-02-01_12-07.npy'
 
 # user input required :
 # target file name :
-playback_angle = 120
-Fireface_gain = 30
-rec_type = 'SANKEN_%sgain_without_at_1m_'%Fireface_gain # with_ or without_ bat
-tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01//SANKEN_without//'
+playback_angle = 30
+Fireface_gain = 15
+rec_type = 'GRASNEW_%sgain_without_at_2m_'%Fireface_gain # with_ or without_ bat
+tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01//GRAS_new_without//'
 
 
 
@@ -50,7 +50,7 @@ complete_file = tgt_folder + file_name
 # load the playback sound file :
 amp_dB = 6.0
 
-pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)*10**(amp_dB/20)
+pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)*10**(amp_dB/20.0)
 
 composite_playback = bat_enson.include_sync_signal(pbk_sound)
 
