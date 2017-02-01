@@ -17,8 +17,16 @@ import sys
 sys.stdout.flush()
 
 # location of playback sound file  
-pbk_wav_locn = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_31_01_playback_sound//'
-pbk_file = 'cIR_conv_signal_2017-01-31_11-16.npy'
+pbk_wav_locn = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01_playback_sound//'
+pbk_file = 'cIR_conv_signal_2017-02-01_12-07.npy'
+
+
+# user input required :
+# target file name :
+playback_angle = 0
+rec_type = 'with_' # with_ or without_ bat
+tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_01_31//'
+
 
 
 # initiate and record playback :
@@ -30,11 +38,7 @@ tgt_dev_name = 'ASIO Fireface USB'
 
 ai_number = bat_enson.find_device_index(tgt_dev_name) # audio interface serial number 38 for PC opp Fluraum klein, and 40 for TBR laptop
 
-# user input required :
-# target file name :
-playback_angle = 0
-rec_type = 'with_' # with_ or without_ bat
-tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_01_31//'
+
 
 # script puts the name together 
 time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%M')
