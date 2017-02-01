@@ -24,7 +24,7 @@ pbk_file = 'cIR_conv_signal_2017-02-01_12-07.npy'
 # user input required :
 # target file name :
 playback_angle = 0
-rec_type = 'calibration_without_' # with_ or without_ bat
+rec_type = 'without_' # with_ or without_ bat
 tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01//'
 
 
@@ -63,5 +63,5 @@ rec_post_sync = bat_enson.remove_pre_sync(rec_sound)
 
 rec_asint16 = bat_enson.save_rec_file(rec_post_sync,FS,complete_file)
 
-plt.plot(rec_asint16)
+
 
