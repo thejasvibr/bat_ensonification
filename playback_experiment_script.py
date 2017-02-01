@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import playback_saving_funcs as bat_enson
 import sounddevice as sd 
 import datetime as dt 
-plt.rcParams['agg.path.chunksize'] = 10000
+plt.rcParams['agg.path.chunksize'] = 100000
 import sys
 sys.stdout.flush()
 
@@ -24,8 +24,8 @@ pbk_file = 'cIR_conv_signal_2017-02-01_12-07.npy'
 # user input required :
 # target file name :
 playback_angle = 0
-rec_type = 'with_' # with_ or without_ bat
-tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_01_31//'
+rec_type = 'calibration_without_' # with_ or without_ bat
+tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01//'
 
 
 
@@ -47,7 +47,7 @@ complete_file = tgt_folder + file_name
 
 
 # load the playback sound file :
-amp_dB = 1.0
+amp_dB = 6.0
 
 pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)*10**(amp_dB/20)
 
@@ -61,5 +61,7 @@ plt.plot(rec_sound)
 
 rec_post_sync = bat_enson.remove_pre_sync(rec_sound)
 
-p = bat_enson.save_rec_file(rec_post_sync,FS,complete_file)
+rec_asint16 = bat_enson.save_rec_file(rec_post_sync,FS,complete_file)
+
+plt.plot(rec_asint16)
 

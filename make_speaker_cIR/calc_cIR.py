@@ -283,15 +283,15 @@ if __name__ == '__main__':
         
     
     
-    print('\n running cIR now ')
-    corrected_signal = execute_cIR_calculation()
-    prev_cor = np.copy(corrected_signal)
-    c_file = 'C:\\Users\\tbeleyur\\Documents\\noise_playback.WAV'
-    try:    
-        wav.write(c_file,192000,corrected_signal)
-        print('wav file saved succesfully')
-    except:
-        print('error in saving file ')
-        
+#    print('\n running cIR now ')
+#    corrected_signal = execute_cIR_calculation()
+#    prev_cor = np.copy(corrected_signal)
+#    c_file = 'C:\\Users\\tbeleyur\\Documents\\noise_playback.WAV'
+#    try:    
+#        wav.write(c_file,192000,corrected_signal)
+#        print('wav file saved succesfully')
+#    except:
+#        print('error in saving file ')
+#        
         
     

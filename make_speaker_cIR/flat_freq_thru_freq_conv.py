@@ -21,21 +21,21 @@ import sys
 import datetime as dt
 sys.stdout.flush()
 
-np.random.seed(612)
+
 
 # location to where the generated data is saved to as numpy arrays
-target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_31_01_playback_sound\\'
+target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_02_01_playback_sound\\'
 
 
 # playback and recording details :
-durn = 3.0
+durn = 2.0
 FS = 192000
 num_samples = int(durn*FS)
 ramp_durn = 0.1
 ramp_samples = int(ramp_durn * FS)
 silence_durn = 0.5
 silence_samples = int(FS*silence_durn)
-dist_mic_speaker = 2.0 # distance in metres
+dist_mic_speaker = 1.9 # distance in metres
 vsound = 320.0
 trans_delay_samples = int((dist_mic_speaker/vsound)*FS)
 
