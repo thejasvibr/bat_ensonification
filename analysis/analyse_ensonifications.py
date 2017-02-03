@@ -60,10 +60,13 @@ def calc_IR(rec_empty_room,rec_w_bat,window_size=1024):
     impulse_response: np.array. output impulse response of required window length
 
     '''
-    midpoint = rec_empty_room.size/2 -1
+
     half_window = window_size/2
     ir_correlation = np.correlate (rec_empty_room,rec_w_bat,'same')
-    impulse_response = ir_correlation[midpoint-half_window:midpoint+half_window]
+    max_cor = np.argmax(abs(ir_correlation))
+
+    impulse_response = ir_correlation[max_cor-half_window:max_cor+half_window]
+
 
 
     return(impulse_response)
