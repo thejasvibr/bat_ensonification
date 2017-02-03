@@ -12,17 +12,22 @@ The input data requirements
 import numpy as np
 import scipy.signal as signal
 import scipy.fftpack as spyfft
+import matplotlib.pyplot as plt
+plt.rcParams['agg.path.chunksize'] =10000
 
 folder_location = 'C://Users//tbeleyur//Documents//bat_ensonification_data//30_degrees//'
 
-def calc_target_strength(rec_empty_room, rec_w_bat, rec_distance):
+def calc_target_strength(rec_empty_room, rec_w_object, rec_distance):
     '''
     calculates target strength of bat at a particular distance
     and provides a dB target strength estimate at 1 metre.
 
     It does this by subtracting the dB rms of the reference
     empty room recording with the dB rms of the recording w
-    the bat in the room.
+    the object in the room.
+
+    If the recording was not made at 1m - the target strength is assumed
+    to rise with 6dB/half distance and calculated correspodingly
 
     Inputs:
     rec_empty_room : np.array. recording w empty room
@@ -78,17 +83,17 @@ if __name__ == '__main__':
     rec_empty_room = np.random.normal(0,0.1,100000)
     echo_filter = np.hstack((np.zeros(100),[0.2],np.zeros(100),[0.1])    )
 
-    b,a = signal.butter(8,[0.5],btype='highpass')
+    b,a = signal.butter(8,[0.5],btype='lowpass')
     w_bat_echo = signal.lfilter(echo_filter,1,rec_empty_room) * 0.05
     rec_w_bat =rec_empty_room*0.01 +  signal.lfilter(b,a,w_bat_echo)
 
 
-    ir = calc_IR(rec_w_bat,rec_empty_room,1024)
+    ir = calc_IR(rec_w_bat,rec_empty_room,500)
 
     amp_ir = np.std(rec_w_bat)/np.std(ir) * ir
 
     # testing if the ir actuallyr ecreates the recorded signal :
-    filt_sig = signal.lfilter(amp_ir,1,rec_empty_room )
+    filt_sig = signal.convolve(rec_empty_room ,amp_ir,'same')
 
     # checking out the target strength of the mock bat :
     ts_mock_bat = calc_target_strength(rec_empty_room,rec_w_bat,1)
