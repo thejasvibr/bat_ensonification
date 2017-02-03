@@ -20,6 +20,7 @@ def load_playback_sound(file_locn):
     
     return(FS , playback_sound)
     
+    
 def load_playback_array(sound_array):
     '''
     loads the Numpy array to be played back
@@ -28,6 +29,16 @@ def load_playback_array(sound_array):
     
     return(playback_array)
  
+def normalise_int_arrays(intarray):
+    '''
+    converts a wav file loaded into an integer value array
+    into an array with +/- 1 range 
+    '''
+    integer_bit = np.float(intarray.dtype[-2:]) -1 
+    max_val = 2**integer_bit -1 
+    
+    normalised_array = intarray/max_val
+    return(normalised_array)
     
 def include_sync_signal(pbk_sound):
     '''
