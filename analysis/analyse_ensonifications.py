@@ -15,7 +15,6 @@ import scipy.fftpack as spyfft
 import matplotlib.pyplot as plt
 plt.rcParams['agg.path.chunksize'] =10000
 
-folder_location = 'C://Users//tbeleyur//Documents//bat_ensonification_data//30_degrees//'
 
 def calc_target_strength(rec_empty_room, rec_w_object, rec_distance):
     '''
