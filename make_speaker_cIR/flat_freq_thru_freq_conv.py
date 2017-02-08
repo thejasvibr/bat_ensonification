@@ -24,7 +24,7 @@ sys.stdout.flush()
 
 
 # location to where the generated data is saved to as numpy arrays
-target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_02_01_playback_sound\\'
+target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_02_08_playback_sound\\'
 
 
 # playback and recording details :
@@ -35,7 +35,7 @@ ramp_durn = 0.1
 ramp_samples = int(ramp_durn * FS)
 silence_durn = 0.5
 silence_samples = int(FS*silence_durn)
-dist_mic_speaker = 1.9 # distance in metres
+dist_mic_speaker = 0.80 # distance in metres
 vsound = 320.0
 trans_delay_samples = int((dist_mic_speaker/vsound)*FS)
 
@@ -46,7 +46,7 @@ tgt_dev_name = 'ASIO Fireface USB'
 tgt_dev_bool = [tgt_dev_name in each_device['name'] for each_device in device_list]
 tgt_ind = int(np.argmax(np.array(tgt_dev_bool)))
 
-dev_in_ch = [2,9]
+dev_in_ch = [2,10]
 dev_out_ch = [2,1]
 
 hp_b, hp_a = signal.butter(8,[float(hp_freq)/FS],'highpass')
@@ -142,7 +142,7 @@ plt.title('Power spectrum of digital signal and speaker IR compensated signal')
 plt.xlabel('Frequency, KHz')
 plt.ylabel('Power, dB (rel. max dB value)')
 
-fft_convrec = ir_funcs.get_pwr_spec( conv_rec[total_delay:total_delay+num_samples] )
+fft_convrec = ir_funcs.get_pwr_spec( conv_rec[total_delay:total_delay+num_samples,1] )
 freqs_convrec = np.linspace(0,96,fft_convrec.size)
 
 fft_orig = ir_funcs.get_pwr_spec(ramp_orig)
