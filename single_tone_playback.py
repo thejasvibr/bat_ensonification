@@ -25,24 +25,25 @@ def make_sinusoid(durn,number_samples,freq):
 
     return(sine_wave)
 
-PLAYBACK_ANGLE = 999
-PLAYBACK_DISTANCE = 1  # IN METRES
+PLAYBACK_ANGLE = 30
+PLAYBACK_DISTANCE = 999  # IN METRES
 
 
 # define the frequencies to be played back :
-playback_freqs = np.array([0.5,50]) *10**3
+playback_freqs = np.array([1,10,20,40,50]) *10**3
 
 # CHECK THE FILENAME BEFORE DOING ANYTHING AT ALL !!
 time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 fname = '%sdeg_playback_%smetre_single_tones_%sHz_%s.WAV'%(PLAYBACK_ANGLE,PLAYBACK_DISTANCE,playback_freqs,time_stamp)
 
 # location to where the generated data is saved to as numpy arrays and wav file
-target_folder = 'C:\\Users\\tbeleyur\\Desktop\\'
+target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_02_08\\cylinder_measurements\\'
+
 
 pbk_durn = 2 # in seconds
 fs = 192000 # sampling rate
-in_ch = [1]
-out_ch = [1]
+in_ch = [2,10]
+out_ch = [2,1]
 
 pbk_samples = int(pbk_durn*fs)
 ramp_samples = int(0.2*fs)
@@ -70,4 +71,11 @@ all_sines_pbk = np.concatenate(sines_w_silences).ravel()
 rec_sines =sd.playrec(all_sines_pbk ,input_mapping = in_ch, output_mapping = out_ch,device = tgt_ind, samplerate = fs)
 sd.wait()
 
-saved_sound = pbksave.save_rec_file(rec_sines,fs,target_folder+fname)
+saved_sound = pbksave.save_rec_file(rec_sines[:,1],fs,target_folder+fname)
+
+plt.figure(1)
+plt.plot(rec_sines[:,1])
+
+plt.figure(2)
+freq_axis  = np.linspace(0,96,rec_sines[:,1].size/2)
+plt.plot(freq_axis,20*np.log10(abs(np.fft.fft(rec_sines[:,1])))[:rec_sines[:,1].size/2] )
