@@ -166,6 +166,16 @@ ir_max_point = np.argmax(abs(align_cor))
 plt.title('Impulse Response centered on max corr point : %d sample window length'%window_length)
 plt.plot(align_cor[ir_max_point-window_length/2:ir_max_point+window_length/2])
 
+plt.figure(5)
+# smooth the power spectrum a bit to understand what's happening:
+window_size = 1000
+moving_average_window = np.ones(window_size)/window_size
+smoothed_spectrum = np.convolve(fft_convrec,moving_average_window,'same')
+plt.plot(np.linspace(0,96,smoothed_spectrum.size),smoothed_spectrum)
+plt.grid()
+plt.title('Smoothed power spectrum post convolution %s window size'%window_size)
+plt.xlabel('KHz')
+plt.ylabel('dB Power')
 
 # column stack the digital playback signal and the compensated signal for future reference :
 time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H-%M') 
