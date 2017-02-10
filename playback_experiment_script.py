@@ -1,24 +1,55 @@
 # -*- coding: utf-8 -*-
 """
-Bat ensonification experiment - Grossflugraum 
+Bat ensonification experiment - Grossflugraum
 script that initiates playbacks and saves the resulting recording
-Created on Wed Jan 25 10:25:21 2017
+
+This script is different from the others in that it plays only 5 ms bursts of sound
+
+Created on Feb 8 2017.
+
 
 @author: tbeleyur
 """
 import scipy.io.wavfile as wav
-import numpy as np 
-import matplotlib.pyplot as plt 
+import numpy as np
+import matplotlib.pyplot as plt
 import playback_saving_funcs as bat_enson
-import sounddevice as sd 
-import datetime as dt 
+import sounddevice as sd
+import datetime as dt
 plt.rcParams['agg.path.chunksize'] = 100000
 import sys
 sys.stdout.flush()
 
-# location of playback sound file  
-pbk_wav_locn = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01_playback_sound//'
+
+FS = 192000
+
+# load the playback sound file :
+amp_dB = 6.0
+
+composite_playback = bat_enson.include_sync_signal(pbk_sound)
+short_durn = 0.005 # length of playback sound in seconds
+numsamples_shortdurn = int(short_durn *FS)
+inter_burst_interval = 0.050 # in seconds
+numsamples_ibi = int(inter_burst_interval*FS)
+num_repeats  = 2
+
+# location of playback sound file
+pbk_wav_locn = 'C://Users//tbeleyur//Documents//bat_ensonification_data//2017_02_01_playback_sound//'
 pbk_file = 'cIR_conv_signal_2017-02-01_12-07.npy'
+
+
+pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)*10**(amp_dB/20.0)
+
+pbk_midpoint = pbk_sound.size/2
+
+pbk_shortclip = pbk_sound[pbk_midpoint:pbk_midpoint+numsamples_shortdurn]
+pbk_silence = np.zeros(numsamples_ibi)
+pbk_one_burst = np.hstack((pbk_silence,pbk_shortclip))
+
+whole_burst_pbk = np.hstack( ( np.tile(pbk_one_burst,num_repeats),np.zeros(numsamples_ibi)) )
+
+composite_playback = bat_enson.include_sync_signal(whole_burst_pbk)
+
 
 
 # user input required :
@@ -32,8 +63,8 @@ tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01//SAN
 
 # initiate and record playback :
 in_channels = [2,9] # [sync, microphone]
-out_channels = [2,1] # [ sync , speaker ] 
-FS = 192000
+out_channels = [2,1] # [ sync , speaker ]
+
 
 tgt_dev_name = 'ASIO Fireface USB'
 
@@ -41,26 +72,20 @@ ai_number = bat_enson.find_device_index(tgt_dev_name) # audio interface serial n
 
 
 
-# script puts the name together 
-time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
-file_name = 'playback_angle_%d_'%playback_angle + rec_type + time_stamp + '.WAV'
-complete_file = tgt_folder + file_name
-
-
-# load the playback sound file :
-amp_dB = 6.0
-
-pbk_sound = bat_enson.load_playback_array(pbk_wav_locn+pbk_file)*10**(amp_dB/20.0)
-
-composite_playback = bat_enson.include_sync_signal(pbk_sound)
-
-rec_sound = sd.playrec(composite_playback, samplerate = FS, 
-   input_mapping = in_channels, output_mapping= out_channels, device = ai_number)
+rec_sound = sd.playrec(composite_playback, samplerate = FS,input_mapping = in_channels, output_mapping= out_channels, device = ai_number)
 sd.wait()
 
 plt.plot(rec_sound)
 
 rec_post_sync = bat_enson.remove_pre_sync(rec_sound)
+
+
+# script puts the name together
+time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
+file_name = 'playback_angle_%d_'%playback_angle + rec_type + time_stamp + '.WAV'
+complete_file = tgt_folder + file_name
+
+
 
 rec_asint16 = bat_enson.save_rec_file(rec_post_sync,FS,complete_file)
 print( 'dB rms is:' ,20.0*np.log10(np.std(rec_post_sync)) )
