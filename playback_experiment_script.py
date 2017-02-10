@@ -24,27 +24,20 @@ pbk_file = 'cIR_conv_signal_2017-02-01_12-07.npy'
 # user input required :
 # target file name :
 playback_angle = 0
-Fireface_gain = 15
-rec_type = 'SANKEN_%sgain_with_bat0_at_2m_'%Fireface_gain # with_ or without_ bat
-tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_01//SANKEN//'
-
+rec_type ='CENTRE_PVCcylinder_at_1m_' # with_ or without_ bat
+tgt_folder = 'C://Users//tbeleyur//Desktop//ensonification_data//2017_02_10//both_mics//'
+GRASgain = 30
+SANKENgain = 30
 
 
 # initiate and record playback :
-in_channels = [2,9] # [sync, microphone]
+in_channels = [2,9,10] # [sync, microphone]
 out_channels = [2,1] # [ sync , speaker ] 
 FS = 192000
 
 tgt_dev_name = 'ASIO Fireface USB'
 
 ai_number = bat_enson.find_device_index(tgt_dev_name) # audio interface serial number 38 for PC opp Fluraum klein, and 40 for TBR laptop
-
-
-
-# script puts the name together 
-time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
-file_name = 'playback_angle_%d_'%playback_angle + rec_type + time_stamp + '.WAV'
-complete_file = tgt_folder + file_name
 
 
 # load the playback sound file :
@@ -60,9 +53,22 @@ sd.wait()
 
 plt.plot(rec_sound)
 
-rec_post_sync = bat_enson.remove_pre_sync(rec_sound)
 
-rec_asint16 = bat_enson.save_rec_file(rec_post_sync,FS,complete_file)
-print( 'dB rms is:' ,20.0*np.log10(np.std(rec_post_sync)) )
+# script puts the name together 
+time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
+file_name = 'playback_angle_%d_'%playback_angle + rec_type + time_stamp + '.WAV'
+complete_file = tgt_folder + file_name
 
+rec_post_sync_GRAS = bat_enson.remove_pre_sync(rec_sound[:,(0,2)])
+rec_post_sync_SANKEN = bat_enson.remove_pre_sync(rec_sound[:,(0,1)])
+
+
+complete_file_GRAS = tgt_folder+ 'GRASgain%s_'%GRASgain +file_name
+complete_file_SANKEN = tgt_folder + 'SANKENgain%s_'%SANKENgain +file_name
+
+rec_asint16 = bat_enson.save_rec_file(rec_post_sync_GRAS,FS,complete_file_GRAS)
+rec_asint16 = bat_enson.save_rec_file(rec_post_sync_GRAS,FS,complete_file_SANKEN)
+
+print( 'dB rms GRAS is:' ,20.0*np.log10(np.std(rec_post_sync_GRAS)) )
+print( 'dB rms SANKEN is:' ,20.0*np.log10(np.std(rec_post_sync_SANKEN)) )
 
