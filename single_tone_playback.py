@@ -43,7 +43,7 @@ target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_02_08\\
 
 pbk_durn = 2 # in seconds
 fs = 192000 # sampling rate
-in_ch = [2,10]
+in_ch = [2,10,9]
 out_ch = [2,1]
 
 pbk_samples = int(pbk_durn*fs)
@@ -85,6 +85,8 @@ plt.figure(3)
 f,t,s = signal.spectrogram(rec_sines[:,1].flatten(),fs)
 plt.pcolormesh(t,f,s)
 
+plt.figure(4)
+self_cor = np.correlate(rec_sines[:,1].flatten(),rec_sines[:,1].flatten(),'same')
 
 
 
