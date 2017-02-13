@@ -30,7 +30,7 @@ PLAYBACK_DISTANCE = 999  # IN METRES
 
 
 # define the frequencies to be played back :
-playback_freqs = np.array([1,10,20,40,50]) *10**3
+playback_freqs = np.array([50]) *10**3
 
 # CHECK THE FILENAME BEFORE DOING ANYTHING AT ALL !!
 time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
