@@ -26,28 +26,28 @@ def make_sinusoid(durn,number_samples,freq):
 
     return(sine_wave)
 
-PLAYBACK_ANGLE = 30
-PLAYBACK_DISTANCE = 999  # IN METRES
-
+PLAYBACK_ANGLE = 0
+PLAYBACK_DISTANCE =  1 # IN METRES
+GAIN = [30,30]
 
 # define the frequencies to be played back :
 playback_freqs = np.array([50]) *10**3
 
 # CHECK THE FILENAME BEFORE DOING ANYTHING AT ALL !!
 time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-fname = '%sdeg_playback_%smetre_single_tones_%sHz_%s.WAV'%(PLAYBACK_ANGLE,PLAYBACK_DISTANCE,playback_freqs,time_stamp)
+fname = '%sdeg_playback_%smetre_single_tones_%sHz_%sgain_%s.WAV'%(PLAYBACK_ANGLE,PLAYBACK_DISTANCE,playback_freqs,GAIN,time_stamp)
 
 # location to where the generated data is saved to as numpy arrays and wav file
-target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_02_08\\cylinder_measurements\\'
+target_folder = 'C:\\Users\\tbeleyur\\Documents\\bat_ensonification_data\\2017_02_13_cylinder\\'
 
 
-pbk_durn = 2 # in seconds
+pbk_durn = 0.5 # in seconds
 fs = 192000 # sampling rate
-in_ch = [2,10,9]
+in_ch = [2,9,10]
 out_ch = [2,1]
 
 pbk_samples = int(pbk_durn*fs)
-ramp_samples = int(0.2*fs)
+ramp_samples = int(0.1*fs)
 
 # silence between the singe tone playbacks
 silence_samples = int(0.2*fs)
@@ -69,13 +69,19 @@ sines_w_silences = [np.hstack((silence_signal,each_sine,silence_signal)) for eac
 
 all_sines_pbk = np.concatenate(sines_w_silences).ravel()
 
+print('recording happening now...')
+
 rec_sines =sd.playrec(all_sines_pbk ,input_mapping = in_ch, output_mapping = out_ch,device = tgt_ind, samplerate = fs)
 sd.wait()
 
-saved_sound = pbksave.save_rec_file(rec_sines[:,1],fs,target_folder+fname)
+#saved_sound_SANKEN = pbksave.save_rec_file(rec_sines[:,1],fs,target_folder+'SANKEN_'+fname)
+saved_sound_GRAS = pbksave.save_rec_file(rec_sines[:,1],fs,target_folder+'GRAS_'+fname)
 
 plt.figure(1)
-plt.plot(rec_sines[:,1])
+plt.plot(rec_sines[:,1],label='SANKEN')
+plt.plot(rec_sines[:,2],label='GRAS')
+plt.legend()
+plt.ylim(-1,1)
 
 plt.figure(2)
 freq_axis  = np.linspace(0,96,rec_sines[:,1].size/2)
@@ -83,14 +89,18 @@ plt.plot(freq_axis,20*np.log10(abs(np.fft.fft(rec_sines[:,1])))[:rec_sines[:,1].
 
 
 plt.figure(3)
+print('spectrogram being calculated now...')
 f,t,s = signal.spectrogram(rec_sines[:,1].flatten(),fs)
 plt.pcolormesh(t,f,s)
 
-plt.figure(4)
-rec_signalcor = np.correlate(rec_sines[:,1].flatten(),rec_sines[:,1].flatten(),'same')
-plt.plot(rec_signalcor,'r-')
-plt.title('autocorrelation of recorded signal - channel 10')
-
+sectionrms = 20*np.log10([ np.std(rec_sines[silence_samples:-silence_samples,0]) ,np.std(rec_sines[silence_samples:-silence_samples,1]) ] )
+print('dB rms is : ', sectionrms)
+#
+#plt.figure(4)
+#print('cross-correlation happening now...')
+#rec_signalcor = np.correlate(rec_sines[:,1].flatten(),rec_sines[:,1].flatten(),'same')
+#plt.plot(rec_signalcor,'r-')
+#plt.title('autocorrelation of recorded signal - channel 10')
 
 
 
