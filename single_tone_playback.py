@@ -81,12 +81,15 @@ plt.figure(2)
 freq_axis  = np.linspace(0,96,rec_sines[:,1].size/2)
 plt.plot(freq_axis,20*np.log10(abs(np.fft.fft(rec_sines[:,1])))[:rec_sines[:,1].size/2] )
 
+
 plt.figure(3)
 f,t,s = signal.spectrogram(rec_sines[:,1].flatten(),fs)
 plt.pcolormesh(t,f,s)
 
 plt.figure(4)
-self_cor = np.correlate(rec_sines[:,1].flatten(),rec_sines[:,1].flatten(),'same')
+rec_signalcor = np.correlate(rec_sines[:,1].flatten(),rec_sines[:,1].flatten(),'same')
+plt.plot(rec_signalcor,'r-')
+plt.title('autocorrelation of recorded signal - channel 10')
 
 
 
