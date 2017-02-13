@@ -14,6 +14,7 @@ import numpy as np
 import sounddevice as sd
 import calc_cIR as ir_funcs
 import matplotlib.pyplot as plt
+import scipy.signal as signal
 plt.rcParams['agg.path.chunksize'] = 100000
 
 import playback_saving_funcs as pbksave
@@ -49,7 +50,7 @@ pbk_samples = int(pbk_durn*fs)
 ramp_samples = int(0.2*fs)
 
 # silence between the singe tone playbacks
-silence_samples = int(0.5*fs)
+silence_samples = int(0.2*fs)
 
 # get the Fireface USB index number :
 device_list = sd.query_devices()
@@ -64,7 +65,7 @@ ramped_sine_waves = [ ir_funcs.add_ramps(ramp_samples,each_sinewave) for each_si
 
 silence_signal = np.zeros(silence_samples)
 
-sines_w_silences = [np.hstack((each_sine,silence_signal)) for each_sine in ramped_sine_waves ]
+sines_w_silences = [np.hstack((silence_signal,each_sine,silence_signal)) for each_sine in ramped_sine_waves ]
 
 all_sines_pbk = np.concatenate(sines_w_silences).ravel()
 
@@ -79,3 +80,12 @@ plt.plot(rec_sines[:,1])
 plt.figure(2)
 freq_axis  = np.linspace(0,96,rec_sines[:,1].size/2)
 plt.plot(freq_axis,20*np.log10(abs(np.fft.fft(rec_sines[:,1])))[:rec_sines[:,1].size/2] )
+
+plt.figure(3)
+f,t,s = signal.spectrogram(rec_sines[:,1].flatten(),fs)
+plt.pcolormesh(t,f,s)
+
+
+
+
+
