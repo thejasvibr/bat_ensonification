@@ -17,27 +17,34 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 plt.rcParams['agg.path.chunksize'] = 10000
 import scipy.io.wavfile as wav
 import calc_cIR as ir_funcs
-import sys 
+import sys
 import datetime as dt
 sys.stdout.flush()
 
 
 
 # location to where the generated data is saved to as numpy arrays
-target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_02_08_playback_sound\\'
+target_folder = 'C:\\Users\\tbeleyur\\Documents\\bat_ensonification_data\\2017_02_15\\linear_sweep_playback_file\\'
 
 
 # playback and recording details :
-durn = 2.0
+durn = 0.002
 FS = 192000
 num_samples = int(durn*FS)
-ramp_durn = 0.1
+ramp_durn = 0.0001
 ramp_samples = int(ramp_durn * FS)
 silence_durn = 0.5
 silence_samples = int(FS*silence_durn)
-dist_mic_speaker = 0.80 # distance in metres
+dist_mic_speaker = 0.70 # distance in metres
 vsound = 320.0
 trans_delay_samples = int((dist_mic_speaker/vsound)*FS)
+
+start_freq = 20000.0
+end_freq = 96000.0
+freq_sweep = np.linspace(end_freq,start_freq,num_samples)
+time = np.linspace(0,durn,num_samples)
+
+linear_sweep = np.sin(2*np.pi*freq_sweep*time)*0.5
 
 hp_freq = 10000
 
@@ -51,9 +58,13 @@ dev_out_ch = [2,1]
 
 hp_b, hp_a = signal.butter(8,[float(hp_freq)/FS],'highpass')
 
-orig_sig = ir_funcs.gen_gaussian_noise(num_samples,0,0.2)
+
+
+
+orig_sig = linear_sweep#ir_funcs.gen_gaussian_noise(num_samples,0,0.2)
+
 orig_sig = signal.lfilter(hp_b,hp_a,orig_sig)
-ramp_orig = ir_funcs.add_ramps(ramp_samples,orig_sig )
+ramp_orig = ir_funcs.add_ramps(ramp_samples,orig_sig)
 orig_zeropad = ir_funcs.zero_pad(silence_samples,ramp_orig)
 
 sync_channel = np.zeros(ramp_orig.size)
@@ -168,7 +179,7 @@ plt.plot(align_cor[ir_max_point-window_length/2:ir_max_point+window_length/2])
 
 plt.figure(5)
 # smooth the power spectrum a bit to understand what's happening:
-window_size = 1000
+window_size = 100
 moving_average_window = np.ones(window_size)/window_size
 smoothed_spectrum = np.convolve(fft_convrec,moving_average_window,'same')
 plt.plot(np.linspace(0,96,smoothed_spectrum.size),smoothed_spectrum)
@@ -178,7 +189,7 @@ plt.xlabel('KHz')
 plt.ylabel('dB Power')
 
 # column stack the digital playback signal and the compensated signal for future reference :
-time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H-%M') 
+time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H-%M')
 
 np.save(target_folder+'wcIRplayback_recording_' + time_stamp,conv_rec)
 np.save(target_folder+'cIR_conv_signal_'+time_stamp,rms_norm_convsig)
