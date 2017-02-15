@@ -20,7 +20,7 @@ plt.rcParams['agg.path.chunksize'] = 100000
 import playback_saving_funcs as pbksave
 import datetime as dt
 
-RECORDING_ANGLE = 180.1
+RECORDING_ANGLE = 0
 PLAYBACK_DISTANCE =  1 # IN METRES
 GAIN = [22.5]
 
