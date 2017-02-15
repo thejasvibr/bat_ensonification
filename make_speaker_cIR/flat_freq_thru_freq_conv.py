@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-output flat frequency noise from the viva speakers
+output speaker IR corrected lienar sweeps from the viva speakers
 
-Created on Mon Jan 30 09:51:12 2017
+
+Created on Feb 15 2017
 
 @author: tbeleyur
 """
@@ -20,6 +21,8 @@ import calc_cIR as ir_funcs
 import sys
 import datetime as dt
 sys.stdout.flush()
+sys.path.append(os.path.realpath('..'))
+import playback_saving_funcs as pbksave
 
 
 
@@ -35,16 +38,23 @@ ramp_durn = 0.0001
 ramp_samples = int(ramp_durn * FS)
 silence_durn = 0.5
 silence_samples = int(FS*silence_durn)
-dist_mic_speaker = 0.70 # distance in metres
+dist_mic_speaker = 0.60 # distance in metres
 vsound = 320.0
 trans_delay_samples = int((dist_mic_speaker/vsound)*FS)
 
-start_freq = 20000.0
-end_freq = 96000.0
-freq_sweep = np.linspace(end_freq,start_freq,num_samples)
+start_freq = 96000.0
+end_freq = 20000.0
+freq_sweep = np.linspace(start_freq,end_freq,num_samples)
 time = np.linspace(0,durn,num_samples)
 
-linear_sweep = np.sin(2*np.pi*freq_sweep*time)*0.5
+# http://www.gaussianwaves.com/2014/07/chirp-signal-frequency-sweeping-fft-and-power-spectral-density/
+
+phi_phase = 0.001
+k = np.abs(start_freq - end_freq)/durn
+
+ft = freq_sweep + (k*time)/2
+
+linear_sweep =np.sin(2*np.pi*ft*time+phi_phase)*0.5
 
 hp_freq = 10000
 
@@ -61,7 +71,7 @@ hp_b, hp_a = signal.butter(8,[float(hp_freq)/FS],'highpass')
 
 
 
-orig_sig = linear_sweep#ir_funcs.gen_gaussian_noise(num_samples,0,0.2)
+orig_sig = linear_sweep #ir_funcs.gen_gaussian_noise(num_samples,0,0.2)
 
 orig_sig = signal.lfilter(hp_b,hp_a,orig_sig)
 ramp_orig = ir_funcs.add_ramps(ramp_samples,orig_sig)
@@ -76,9 +86,7 @@ orig_playback = np.column_stack( (sync_zeropad,orig_zeropad) )
 rec_sound = sd.playrec(orig_playback,samplerate= FS, input_mapping=dev_in_ch, output_mapping= dev_out_ch, device = tgt_ind)
 sd.wait()
 
-plt.figure(1)
-plt.plot(rec_sound)
-plt.title('raw recording + sync channel display')
+
 
 rec_sync_index = np.argmax(abs(rec_sound[:,0]))
 post_sync_rec = rec_sound[rec_sync_index:,1]
@@ -111,7 +119,6 @@ conv_sig = spyfft.ifft(conv_freq).real
 
 plt.figure(2)
 plt.title('Spectra: Original signal, recorded signal, compensatory signal  ')
-plt.xlabel('Frequency, KHz')
 plt.ylabel('Power, dB')
 
 digital_sig, = plt.plot(np.linspace(0,96,aligned_orig.size/2),ir_funcs.get_pwr_spec(aligned_orig),label='original signal')
@@ -129,7 +136,7 @@ zerop_convsig = ir_funcs.zero_pad(silence_samples,ramp_convsig)
 zerop_sync_ch_convsig = ir_funcs.zero_pad(silence_samples,sync_ch_convsig)
 
 hp_convsig = signal.lfilter(hp_b,hp_a,zerop_convsig)
-rms_norm_convsig = np.std(orig_zeropad)/np.std(hp_convsig) * zerop_convsig
+rms_norm_convsig = np.std(ramp_orig)/np.std(ramp_convsig) * zerop_convsig
 
 
 conv_playback = np.column_stack((zerop_sync_ch_convsig,rms_norm_convsig))
@@ -153,7 +160,7 @@ plt.title('Power spectrum of digital signal and speaker IR compensated signal')
 plt.xlabel('Frequency, KHz')
 plt.ylabel('Power, dB (rel. max dB value)')
 
-fft_convrec = ir_funcs.get_pwr_spec( conv_rec[total_delay:total_delay+num_samples,1] )
+fft_convrec = ir_funcs.get_pwr_spec( conv_rec[align_index:align_index+num_samples,1] )
 freqs_convrec = np.linspace(0,96,fft_convrec.size)
 
 fft_orig = ir_funcs.get_pwr_spec(ramp_orig)
@@ -169,7 +176,12 @@ digital_sig, = plt.plot(new_freqs,intp_val_orig-np.max(intp_val_orig),'b*-',labe
 plt.legend(handles = [convrec_plot,digital_sig],bbox_to_anchor=(0.5,0.2),loc=1,borderaxespad=0.)
 
 plt.figure(1)
-plt.plot(conv_rec,label='convolved recording')
+plt.figure(1)
+plt.plot(rec_sound,label='uncompensated recording')
+plt.plot(conv_rec[:,1],label='convolved recording')
+plt.title('recording of raw & convolved recording')
+plt.legend()
+
 
 plt.figure(4)
 window_length = 2048
@@ -179,7 +191,7 @@ plt.plot(align_cor[ir_max_point-window_length/2:ir_max_point+window_length/2])
 
 plt.figure(5)
 # smooth the power spectrum a bit to understand what's happening:
-window_size = 100
+window_size = 50
 moving_average_window = np.ones(window_size)/window_size
 smoothed_spectrum = np.convolve(fft_convrec,moving_average_window,'same')
 plt.plot(np.linspace(0,96,smoothed_spectrum.size),smoothed_spectrum)
@@ -195,6 +207,7 @@ np.save(target_folder+'wcIRplayback_recording_' + time_stamp,conv_rec)
 np.save(target_folder+'cIR_conv_signal_'+time_stamp,rms_norm_convsig)
 np.save(target_folder+'orig_signal_'+time_stamp,orig_sig)
 
+saved_sound = pbksave.save_rec_file(conv_rec[:,1],FS,target_folder+'GRAS_''wcIRplayback_recording_' + time_stamp+'.WAV')
 
 
 
