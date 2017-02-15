@@ -27,11 +27,11 @@ import playback_saving_funcs as pbksave
 
 
 # location to where the generated data is saved to as numpy arrays
-target_folder = 'C:\\Users\\tbeleyur\\Documents\\bat_ensonification_data\\2017_02_15\\linear_sweep_playback_file\\'
+target_folder = 'C:\\Users\\tbeleyur\\Documents\\bat_ensonification_data\\2017_02_15\\linear_sweep_playback_file\\1ms_20-96KHz_sweep\\'
 
 
 # playback and recording details :
-durn = 0.002
+durn = 0.001
 FS = 192000
 num_samples = int(durn*FS)
 ramp_durn = 0.0001
@@ -191,7 +191,7 @@ plt.plot(align_cor[ir_max_point-window_length/2:ir_max_point+window_length/2])
 
 plt.figure(5)
 # smooth the power spectrum a bit to understand what's happening:
-window_size = 50
+window_size = 10
 moving_average_window = np.ones(window_size)/window_size
 smoothed_spectrum = np.convolve(fft_convrec,moving_average_window,'same')
 plt.plot(np.linspace(0,96,smoothed_spectrum.size),smoothed_spectrum)
