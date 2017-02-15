@@ -20,34 +20,36 @@ plt.rcParams['agg.path.chunksize'] = 100000
 import playback_saving_funcs as pbksave
 import datetime as dt
 
-def make_sinusoid(durn,number_samples,freq):
-    t = np.linspace(0,durn,number_samples)
-    sine_wave = np.sin(2*np.pi*freq*t) * 0.5
-
-    return(sine_wave)
-
 RECORDING_ANGLE = 180.1
 PLAYBACK_DISTANCE =  1 # IN METRES
 GAIN = [22.5]
 
-# define the frequencies to be played back :
-playback_freqs = np.array([50]) *10**3
-
+playback_freqs = '26.933KHz'
 # CHECK THE FILENAME BEFORE DOING ANYTHING AT ALL !!
 time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 fname = '%sdeg_WITHOUT_playback_%smetre_single_tones_%sHz_%sgain_%s.WAV'%(RECORDING_ANGLE,PLAYBACK_DISTANCE,playback_freqs,GAIN,time_stamp)
 
 # location to where the generated data is saved to as numpy arrays and wav file
-target_folder = 'C:\\Users\\tbeleyur\\Documents\\bat_ensonification_data\\2017_02_13\\setup_turned_around\\'
+target_folder = 'C:\\Users\\tbeleyur\\Documents\\bat_ensonification_data\\2017_02_15\\'
 
 
-pbk_durn = 0.100 # in seconds
+pbk_durn = 0.001 # in seconds
 fs = 192000 # sampling rate
 in_ch = [2,9]
 out_ch = [2,1]
 
 pbk_samples = int(pbk_durn*fs)
-ramp_samples = int(0.0005*fs)
+ramp_samples = int(0.0001*fs)
+
+
+# define the frequencies to be played back :
+playback_freqs = 26.933*1000#np.linspace(50,50,pbk_samples)*1000.0
+t = np.linspace(0,pbk_durn,pbk_samples)
+sweep = np.sin(2*np.pi*playback_freqs*t)*0.5
+
+one_sweep = sweep
+
+ramped_sweep = ir_funcs.add_ramps(ramp_samples,one_sweep)
 
 # silence between the singe tone playbacks
 silence_samples = int(0.2*fs)
@@ -59,29 +61,28 @@ tgt_dev_bool = [tgt_dev_name in each_device['name'] for each_device in device_li
 tgt_ind = int(np.argmax(np.array(tgt_dev_bool)))
 
 
-sine_waves = [make_sinusoid(pbk_durn,pbk_samples,each_freq) for each_freq in playback_freqs]
-
-ramped_sine_waves = [ ir_funcs.add_ramps(ramp_samples,each_sinewave) for each_sinewave in sine_waves]
-
 silence_signal = np.zeros(silence_samples)
 
-sines_w_silences = [np.hstack((silence_signal,each_sine,silence_signal)) for each_sine in ramped_sine_waves ]
+sweep_w_silence = np.hstack((silence_signal,sweep,silence_signal))
 
-all_sines_pbk = np.concatenate(sines_w_silences).ravel()
+repeat_sweeps =np.tile(sweep_w_silence,5)
 
 print('recording happening now...')
 
-rec_sines =sd.playrec(all_sines_pbk ,input_mapping = in_ch, output_mapping = out_ch,device = tgt_ind, samplerate = fs)
+rec_sines =sd.playrec(repeat_sweeps ,input_mapping = in_ch, output_mapping = out_ch,device = tgt_ind, samplerate = fs)
 sd.wait()
 
 saved_sound_SANKEN = pbksave.save_rec_file(rec_sines[:,1],fs,target_folder+'SANKEN_'+fname)
 #saved_sound_GRAS = pbksave.save_rec_file(rec_sines[:,1],fs,target_folder+'GRAS_'+fname)
 
 plt.figure(1)
-plt.plot(rec_sines[:,1],label='SANKEN')
+time = np.linspace(0,rec_sines[:,1].size/float(fs),rec_sines[:,1].size)
+plt.plot(time,rec_sines[:,1],label='SANKEN')
+plt.plot(time,rec_sines[:,0],label='playback initiated')
+plt.grid(10)
 #plt.plot(rec_sines[:,2],label='GRAS')
 plt.legend()
-plt.ylim(-1,1)
+#plt.ylim(-1,1)
 
 plt.figure(2)
 freq_axis  = np.linspace(0,96,rec_sines[:,1].size/2)
@@ -90,7 +91,7 @@ plt.plot(freq_axis,20*np.log10(abs(np.fft.fft(rec_sines[:,1])))[:rec_sines[:,1].
 
 plt.figure(3)
 print('spectrogram being calculated now...')
-f,t,s = signal.spectrogram(rec_sines[:,1].flatten(),fs)
+f,t,s = signal.spectrogram(rec_sines[:,1].flatten(),fs,nperseg=100,noverlap=50)
 plt.pcolormesh(t,f,s)
 
 sectionrms = 20*np.log10([np.std(rec_sines[silence_samples:-silence_samples,1]) ] )
@@ -98,9 +99,12 @@ print('dB rms is : ', sectionrms)
 #
 #plt.figure(4)
 #print('cross-correlation happening now...')
-#rec_signalcor = np.correlate(rec_sines[:,1].flatten(),rec_sines[:,1].flatten(),'same')
-#plt.plot(rec_signalcor,'r-')
-#plt.title('autocorrelation of recorded signal - channel 10')
+#rec_signalcor = np.correlate(rec_sines[:,1].flatten(),all_sines_pbk.flatten(),'same')
+#cor_left = - rec_signalcor.size/192000.0/2
+#cor_right = -cor_left
+#line = np.linspace(cor_left,cor_right,rec_signalcor.size)
+#plt.plot(line,rec_signalcor,'r-')
+#plt.title('autocorrelation of recorded signal')
 
 
 
