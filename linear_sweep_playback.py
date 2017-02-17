@@ -20,24 +20,25 @@ plt.rcParams['agg.path.chunksize'] = 100000
 import playback_saving_funcs as pbksave
 import datetime as dt
 
-RECORDING_ANGLE = 180.1
+RECORDING_ANGLE = 90
 PLAYBACK_DISTANCE =  1 # IN METRES
-GAIN = [22.5]
+GAIN = [30]
 
 playback_freqs = '20-96KHzSWEEP'
+playback_type = 'TARGET_STRENGTH'
 # CHECK THE FILENAME BEFORE DOING ANYTHING AT ALL !!
 time_stamp = dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-fname = '%sdeg_WITH_PINGPONG_SWEEP_playback_%smetre_single_tones_%sHz_%sgain_%s.WAV'%(RECORDING_ANGLE,PLAYBACK_DISTANCE,playback_freqs,GAIN,time_stamp)
+fname = '%s_%sdeg_WITH_BAT_3msSWEEP_playback_%smetre_single_tones_%sHz_%sgain_%s.WAV'%(playback_type,RECORDING_ANGLE,PLAYBACK_DISTANCE,playback_freqs,GAIN,time_stamp)
 
 # location to where the generated data is saved to as numpy arrays and wav file
-target_folder = 'C:\\Users\\tbeleyur\\Documents\\bat_ensonification_data\\2017_02_15\\linear_sweep_recordings\\'
+target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_02_17\\bat_linear_sweep_recordings\\3ms_linear_sweeps\\'
 
 # location to get the linear sweep array from:
-sweep_location_folder = 'C:\\Users\\tbeleyur\\Documents\\bat_ensonification_data\\2017_02_15\\linear_sweep_playback_file\\3ms_20-96KHz_sweep\\'
+sweep_location_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_02_15\\linear_sweep_playback_file\\3ms_20-96KHz_sweep\\'
 sweep_wcIR_array = 'cIR_conv_signal_2017-02-15_15-05.npy'
 
 fs = 192000 # sampling rate
-in_ch = [2,10]
+in_ch = [2,9]
 out_ch = [2,1]
 
 one_sweep = np.load(sweep_location_folder+sweep_wcIR_array)
@@ -56,6 +57,8 @@ rec_sines =sd.playrec(repeat_sweeps ,input_mapping = in_ch, output_mapping = out
 sd.wait()
 
 saved_sound_SANKEN = pbksave.save_rec_file(rec_sines[:,1],fs,target_folder+'SANKEN_'+fname)
+
+
 #saved_sound_GRAS = pbksave.save_rec_file(rec_sines[:,1],fs,target_folder+'GRAS_'+fname)
 
 plt.figure(1)
@@ -73,4 +76,4 @@ plt.plot(freq_axis,20*np.log10(abs(np.fft.fft(rec_sines[:,1])))[:rec_sines[:,1].
 
 
 #sectionrms = 20*np.log10([np.std(rec_sines[silence_samples:-silence_samples,1]) ] )
-print('dB rms is : ', sectionrms)
+#print('dB rms is : ', sectionrms)
