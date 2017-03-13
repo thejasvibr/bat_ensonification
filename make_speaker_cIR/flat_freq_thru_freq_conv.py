@@ -18,7 +18,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 plt.rcParams['agg.path.chunksize'] = 10000
 import scipy.io.wavfile as wav
 import calc_cIR as ir_funcs
-import sys
+import sys,os
 import datetime as dt
 sys.stdout.flush()
 sys.path.append(os.path.realpath('..'))
@@ -27,18 +27,18 @@ import playback_saving_funcs as pbksave
 
 
 # location to where the generated data is saved to as numpy arrays
-target_folder = 'C:\\Users\\tbeleyur\\Documents\\bat_ensonification_data\\2017_02_15\\linear_sweep_playback_file\\1ms_20-96KHz_sweep\\'
+target_folder = 'C:\\Users\\tbeleyur\\Desktop\\ensonification_data\\2017_03_13\\playback_sweeps\\2ms\\'
 
 
 # playback and recording details :
-durn = 0.001
+durn = 0.002
 FS = 192000
 num_samples = int(durn*FS)
-ramp_durn = 0.0001
+ramp_durn = 0.0005
 ramp_samples = int(ramp_durn * FS)
 silence_durn = 0.5
 silence_samples = int(FS*silence_durn)
-dist_mic_speaker = 0.60 # distance in metres
+dist_mic_speaker = 1.0 # distance in metres
 vsound = 320.0
 trans_delay_samples = int((dist_mic_speaker/vsound)*FS)
 
@@ -47,14 +47,9 @@ end_freq = 20000.0
 freq_sweep = np.linspace(start_freq,end_freq,num_samples)
 time = np.linspace(0,durn,num_samples)
 
-# http://www.gaussianwaves.com/2014/07/chirp-signal-frequency-sweeping-fft-and-power-spectral-density/
 
-phi_phase = 0.001
-k = np.abs(start_freq - end_freq)/durn
+sweep = signal.chirp(time,start_freq,np.max(time),end_freq,'log')
 
-ft = freq_sweep + (k*time)/2
-
-linear_sweep =np.sin(2*np.pi*ft*time+phi_phase)*0.5
 
 hp_freq = 10000
 
@@ -71,7 +66,7 @@ hp_b, hp_a = signal.butter(8,[float(hp_freq)/FS],'highpass')
 
 
 
-orig_sig = linear_sweep #ir_funcs.gen_gaussian_noise(num_samples,0,0.2)
+orig_sig = sweep #linear_sweep #ir_funcs.gen_gaussian_noise(num_samples,0,0.2)
 
 orig_sig = signal.lfilter(hp_b,hp_a,orig_sig)
 ramp_orig = ir_funcs.add_ramps(ramp_samples,orig_sig)
